@@ -60,7 +60,8 @@ docker compose down          # Tear down
                         └─────────────────────────────────────────────────┘
 ```
 
-- **MarketDataGateway** (`arb-market-data`): Feed handlers for HKEX, TAIFEX, CSI that normalize ticks and publish to Aeron.
+- **MarketDataGateway** (`arb-market-data`): Feed handlers for HKEX, TAIFEX, CSI that normalize ticks and publish to Aeron. Publishes `MarketDataTick`, `QuoteTick`, `MarketVolumeTick`, `ReferenceDataRecord`.
+- **FvEngine** (`arb-gambit`): Dedicated NAV & Fair Value pricing engine. Consumes price updates from `MARKET_DATA_CHANNEL`; computes ETF NAV (`NavCalculator`) and Futures FV (`FuturesFvCalculator`, carry+dividend-adjusted); publishes `FvUpdate` to `FV_CHANNEL` (stream 1005). Used by strategies as the canonical arb signal.
 - **Sequencer** (`arb-strategy`): Single-threaded `ArbSequencer` — deterministic event ordering, reads from `MARKET_DATA_CHANNEL`, dispatches to registered `Strategy`, writes signals to `ORDER_CHANNEL`.
 - **StrategyEngine** (`arb-strategy`): Implements `Strategy` interface (`onMarketData(Tick)`, `onTimer()`). Calculates Fair Value via `IndexCalculator` and `BasisCalculator`. Strategies are enable/disable-configurable via a config file.
 - **ExecutionGateway** (`arb-execution`): Decodes `OrderRequest` SBE, applies pre-trade risk checks, routes to mock `ExchangeConnector`. Fills returned to `ORDER_UPDATE_CHANNEL`. Mock adds 10–50µs random jitter.
@@ -82,6 +83,7 @@ docker compose down          # Tear down
 | 4 | `QuoteTick` | `arb-market-data` | symbol, exchange, iep, bidPrice, askPrice, timestamp |
 | 5 | `MarketVolumeTick` | `arb-market-data` | symbol, exchange, iev, dailyVolume, timestamp |
 | 6 | `ReferenceDataRecord` | `arb-market-data` | symbol, exchange, lotSize, tickSize, currency, constituentWeight |
+| 7 | `FvUpdate` | `arb-gambit` | symbol, exchange, navPerUnit, futuresFv, basis, annualisedBasisBps, timestamp |
 
 ### Zero-GC Hot Path
 - **No object allocation in the hot path.** Use `agrona.collections.Int2ObjectHashMap` for constituent lookups (not `HashMap`).
@@ -131,6 +133,7 @@ Follow `devdocs/MyIndexArbAlgoSystemPlan.md` phase by phase. After completing ea
 | 1 | The Eyes | Market data feed handlers (HKEX, TAIFEX, CSI), normalization |
 | 2 | The Brain | Sequencer + FV/Basis calculators (Zero-GC verified) |
 | 2a | The Senses | Extended market data types (QuoteTick/IEP, MarketVolumeTick/IEV, ReferenceDataRecord) + ReferenceDataStore |
+| 2b | The Gambit | `arb-gambit` module — ETF NAV engine, Futures FV (carry+dividend), FvUpdate SBE → FV_CHANNEL |
 | 3 | The Alpha | Four arb strategy implementations + config toggle |
 | 4 | The Hands | Execution gateway, pre-trade risk, `BasketSlicer` |
 | 5 | The Face | `arb-web-gateway` (Vert.x) + React dashboard (4 views, dark mode) |
