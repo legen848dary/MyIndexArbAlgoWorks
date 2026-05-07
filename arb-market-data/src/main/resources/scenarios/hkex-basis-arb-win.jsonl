@@ -1,0 +1,180 @@
+{"type": "MD", "ts": 0, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190026491, "qty": 125}
+{"type": "FV", "ts": 0, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 190389000, "navPerUnit": 0, "basis": -389000, "annualisedBasisBps100": -20}
+{"type": "MD", "ts": 200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190045894, "qty": 350}
+{"type": "MD", "ts": 400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189947411, "qty": 854}
+{"type": "MD", "ts": 600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189924475, "qty": 858}
+{"type": "MD", "ts": 800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190074514, "qty": 189}
+{"type": "MD", "ts": 1000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190017193, "qty": 132}
+{"type": "FV", "ts": 1000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 190389000, "navPerUnit": 0, "basis": -389000, "annualisedBasisBps100": -20}
+{"type": "MD", "ts": 1200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189910662, "qty": 323}
+{"type": "MD", "ts": 1400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189949206, "qty": 716}
+{"type": "MD", "ts": 1600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189910042, "qty": 303}
+{"type": "MD", "ts": 1800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190041043, "qty": 818}
+{"type": "MD", "ts": 2000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190008538, "qty": 325}
+{"type": "FV", "ts": 2000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 190389000, "navPerUnit": 0, "basis": -389000, "annualisedBasisBps100": -20}
+{"type": "MD", "ts": 2200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189990350, "qty": 384}
+{"type": "MD", "ts": 2400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190058791, "qty": 106}
+{"type": "MD", "ts": 2600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190049173, "qty": 263}
+{"type": "MD", "ts": 2800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190037646, "qty": 448}
+{"type": "MD", "ts": 3000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189957796, "qty": 320}
+{"type": "FV", "ts": 3000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 190389000, "navPerUnit": 0, "basis": -389000, "annualisedBasisBps100": -20}
+{"type": "MD", "ts": 3200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190086870, "qty": 444}
+{"type": "MD", "ts": 3400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189924420, "qty": 489}
+{"type": "MD", "ts": 3600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189923377, "qty": 967}
+{"type": "MD", "ts": 3800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189970352, "qty": 370}
+{"type": "MD", "ts": 4000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190058354, "qty": 847}
+{"type": "FV", "ts": 4000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 190389000, "navPerUnit": 0, "basis": -389000, "annualisedBasisBps100": -20}
+{"type": "MD", "ts": 4200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189992291, "qty": 227}
+{"type": "MD", "ts": 4400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190089891, "qty": 487}
+{"type": "MD", "ts": 4600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189919973, "qty": 400}
+{"type": "MD", "ts": 4800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190062586, "qty": 733}
+{"type": "MD", "ts": 5000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190073235, "qty": 470}
+{"type": "FV", "ts": 5000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 190389000, "navPerUnit": 0, "basis": -389000, "annualisedBasisBps100": -20}
+{"type": "MD", "ts": 5200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190014696, "qty": 821}
+{"type": "MD", "ts": 5400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189918216, "qty": 777}
+{"type": "MD", "ts": 5600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189948301, "qty": 396}
+{"type": "MD", "ts": 5800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190092192, "qty": 975}
+{"type": "MD", "ts": 6000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189949231, "qty": 203}
+{"type": "FV", "ts": 6000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 190389000, "navPerUnit": 0, "basis": -389000, "annualisedBasisBps100": -20}
+{"type": "MD", "ts": 6200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189977224, "qty": 564}
+{"type": "MD", "ts": 6400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190025780, "qty": 473}
+{"type": "MD", "ts": 6600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189935905, "qty": 463}
+{"type": "MD", "ts": 6800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189944807, "qty": 373}
+{"type": "MD", "ts": 7000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190038345, "qty": 799}
+{"type": "FV", "ts": 7000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 190389000, "navPerUnit": 0, "basis": -389000, "annualisedBasisBps100": -20}
+{"type": "MD", "ts": 7200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190028126, "qty": 723}
+{"type": "MD", "ts": 7400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190025645, "qty": 646}
+{"type": "MD", "ts": 7600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190043534, "qty": 267}
+{"type": "MD", "ts": 7800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189992830, "qty": 376}
+{"type": "MD", "ts": 8000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190093009, "qty": 755}
+{"type": "FV", "ts": 8000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 190389000, "navPerUnit": 0, "basis": -389000, "annualisedBasisBps100": -20}
+{"type": "MD", "ts": 8200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190035750, "qty": 324}
+{"type": "MD", "ts": 8400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190035076, "qty": 963}
+{"type": "MD", "ts": 8600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190050979, "qty": 157}
+{"type": "MD", "ts": 8800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189948520, "qty": 132}
+{"type": "MD", "ts": 9000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190057958, "qty": 510}
+{"type": "FV", "ts": 9000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 190389000, "navPerUnit": 0, "basis": -389000, "annualisedBasisBps100": -20}
+{"type": "MD", "ts": 9200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189955871, "qty": 316}
+{"type": "MD", "ts": 9400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190078495, "qty": 680}
+{"type": "MD", "ts": 9600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190071509, "qty": 422}
+{"type": "MD", "ts": 9800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 189945400, "qty": 611}
+{"type": "MD", "ts": 10000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190188090, "qty": 1516}
+{"type": "FV", "ts": 10000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 193200000, "navPerUnit": 0, "basis": -3000000, "annualisedBasisBps100": 6000}
+{"type": "MD", "ts": 10200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190198203, "qty": 742}
+{"type": "MD", "ts": 10400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190164671, "qty": 1725}
+{"type": "MD", "ts": 10600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190215698, "qty": 738}
+{"type": "MD", "ts": 10800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190239784, "qty": 1077}
+{"type": "MD", "ts": 11000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190259895, "qty": 1017}
+{"type": "FV", "ts": 11000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 193200000, "navPerUnit": 0, "basis": -2985508, "annualisedBasisBps100": 6000}
+{"type": "MD", "ts": 11200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190201641, "qty": 483}
+{"type": "MD", "ts": 11400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190221376, "qty": 386}
+{"type": "MD", "ts": 11600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190252381, "qty": 1963}
+{"type": "MD", "ts": 11800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190181534, "qty": 1485}
+{"type": "MD", "ts": 12000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190190177, "qty": 1593}
+{"type": "FV", "ts": 12000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 193200000, "navPerUnit": 0, "basis": -2971015, "annualisedBasisBps100": 6000}
+{"type": "MD", "ts": 12200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190223000, "qty": 330}
+{"type": "MD", "ts": 12400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190221630, "qty": 1420}
+{"type": "MD", "ts": 12600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190294309, "qty": 1283}
+{"type": "MD", "ts": 12800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190212205, "qty": 1333}
+{"type": "MD", "ts": 13000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190284659, "qty": 223}
+{"type": "FV", "ts": 13000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 193200000, "navPerUnit": 0, "basis": -2956522, "annualisedBasisBps100": 6000}
+{"type": "MD", "ts": 13200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190266954, "qty": 434}
+{"type": "MD", "ts": 13400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190270017, "qty": 1299}
+{"type": "MD", "ts": 13600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190280811, "qty": 1774}
+{"type": "MD", "ts": 13800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190271163, "qty": 428}
+{"type": "MD", "ts": 14000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190234399, "qty": 523}
+{"type": "FV", "ts": 14000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 193200000, "navPerUnit": 0, "basis": -2942029, "annualisedBasisBps100": 6000}
+{"type": "MD", "ts": 14200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190255587, "qty": 1678}
+{"type": "MD", "ts": 14400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190306674, "qty": 739}
+{"type": "MD", "ts": 14600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190320536, "qty": 1760}
+{"type": "MD", "ts": 14800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190232880, "qty": 417}
+{"type": "MD", "ts": 15000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190314762, "qty": 811}
+{"type": "FV", "ts": 15000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 193200000, "navPerUnit": 0, "basis": -2927537, "annualisedBasisBps100": 6000}
+{"type": "MD", "ts": 15200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190314368, "qty": 1239}
+{"type": "MD", "ts": 15400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190290700, "qty": 513}
+{"type": "MD", "ts": 15600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190266764, "qty": 530}
+{"type": "MD", "ts": 15800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190288552, "qty": 1794}
+{"type": "MD", "ts": 16000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190335186, "qty": 201}
+{"type": "FV", "ts": 16000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 193200000, "navPerUnit": 0, "basis": -2913044, "annualisedBasisBps100": 6000}
+{"type": "MD", "ts": 16200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190301151, "qty": 1200}
+{"type": "MD", "ts": 16400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190237889, "qty": 943}
+{"type": "MD", "ts": 16600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190338893, "qty": 1903}
+{"type": "MD", "ts": 16800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190333577, "qty": 690}
+{"type": "MD", "ts": 17000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190250973, "qty": 1998}
+{"type": "FV", "ts": 17000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 193200000, "navPerUnit": 0, "basis": -2898551, "annualisedBasisBps100": 6000}
+{"type": "MD", "ts": 17200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190312037, "qty": 361}
+{"type": "MD", "ts": 17400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190259935, "qty": 1195}
+{"type": "MD", "ts": 17600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190346229, "qty": 1757}
+{"type": "MD", "ts": 17800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190316777, "qty": 457}
+{"type": "MD", "ts": 18000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190273509, "qty": 1173}
+{"type": "FV", "ts": 18000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 193200000, "navPerUnit": 0, "basis": -2884058, "annualisedBasisBps100": 6000}
+{"type": "MD", "ts": 18200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190369866, "qty": 538}
+{"type": "MD", "ts": 18400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190294911, "qty": 1986}
+{"type": "MD", "ts": 18600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190336809, "qty": 633}
+{"type": "MD", "ts": 18800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190376516, "qty": 1746}
+{"type": "MD", "ts": 19000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190356691, "qty": 611}
+{"type": "FV", "ts": 19000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 193200000, "navPerUnit": 0, "basis": -2869566, "annualisedBasisBps100": 6000}
+{"type": "MD", "ts": 19200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190357651, "qty": 1017}
+{"type": "MD", "ts": 19400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190392777, "qty": 1530}
+{"type": "MD", "ts": 19600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190324675, "qty": 1259}
+{"type": "MD", "ts": 19800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190336488, "qty": 707}
+{"type": "MD", "ts": 20000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190313486, "qty": 892}
+{"type": "FV", "ts": 20000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 193200000, "navPerUnit": 0, "basis": -2855073, "annualisedBasisBps100": 6000}
+{"type": "MD", "ts": 20200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190293124, "qty": 1334}
+{"type": "MD", "ts": 20400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190319901, "qty": 651}
+{"type": "MD", "ts": 20600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190297339, "qty": 1649}
+{"type": "MD", "ts": 20800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190371494, "qty": 668}
+{"type": "MD", "ts": 21000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190310011, "qty": 264}
+{"type": "FV", "ts": 21000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 193200000, "navPerUnit": 0, "basis": -2840580, "annualisedBasisBps100": 6000}
+{"type": "MD", "ts": 21200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190403394, "qty": 345}
+{"type": "MD", "ts": 21400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190366833, "qty": 770}
+{"type": "MD", "ts": 21600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190387415, "qty": 638}
+{"type": "MD", "ts": 21800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190375495, "qty": 1681}
+{"type": "MD", "ts": 22000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190423659, "qty": 1369}
+{"type": "FV", "ts": 22000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 193200000, "navPerUnit": 0, "basis": -2826087, "annualisedBasisBps100": 6000}
+{"type": "MD", "ts": 22200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190385516, "qty": 697}
+{"type": "MD", "ts": 22400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190412221, "qty": 1853}
+{"type": "MD", "ts": 22600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190371992, "qty": 393}
+{"type": "MD", "ts": 22800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190339464, "qty": 1082}
+{"type": "MD", "ts": 23000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190371761, "qty": 1041}
+{"type": "FV", "ts": 23000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 193200000, "navPerUnit": 0, "basis": -2811595, "annualisedBasisBps100": 6000}
+{"type": "MD", "ts": 23200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190387538, "qty": 1693}
+{"type": "MD", "ts": 23400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190343273, "qty": 1538}
+{"type": "MD", "ts": 23600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190452411, "qty": 401}
+{"type": "MD", "ts": 23800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190349805, "qty": 1691}
+{"type": "MD", "ts": 24000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190981585, "qty": 211}
+{"type": "FV", "ts": 24000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 190900000, "navPerUnit": 0, "basis": 100000, "annualisedBasisBps100": -20}
+{"type": "MD", "ts": 24200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190953958, "qty": 294}
+{"type": "MD", "ts": 24400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190969675, "qty": 243}
+{"type": "MD", "ts": 24600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190939327, "qty": 385}
+{"type": "MD", "ts": 24800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190926754, "qty": 177}
+{"type": "MD", "ts": 25000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190907280, "qty": 663}
+{"type": "FV", "ts": 25000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 190900000, "navPerUnit": 0, "basis": 13794, "annualisedBasisBps100": -20}
+{"type": "MD", "ts": 25200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190850498, "qty": 767}
+{"type": "MD", "ts": 25400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190936492, "qty": 115}
+{"type": "MD", "ts": 25600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190915777, "qty": 342}
+{"type": "MD", "ts": 25800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190806619, "qty": 597}
+{"type": "MD", "ts": 26000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190825453, "qty": 510}
+{"type": "FV", "ts": 26000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 190900000, "navPerUnit": 0, "basis": -72413, "annualisedBasisBps100": -20}
+{"type": "MD", "ts": 26200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190856419, "qty": 268}
+{"type": "MD", "ts": 26400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190779250, "qty": 499}
+{"type": "MD", "ts": 26600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190748987, "qty": 565}
+{"type": "MD", "ts": 26800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190734042, "qty": 669}
+{"type": "MD", "ts": 27000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190759905, "qty": 598}
+{"type": "FV", "ts": 27000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 190900000, "navPerUnit": 0, "basis": -158620, "annualisedBasisBps100": -20}
+{"type": "MD", "ts": 27200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190684635, "qty": 403}
+{"type": "MD", "ts": 27400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190674596, "qty": 159}
+{"type": "MD", "ts": 27600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190698715, "qty": 655}
+{"type": "MD", "ts": 27800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190622187, "qty": 421}
+{"type": "MD", "ts": 28000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190604516, "qty": 698}
+{"type": "FV", "ts": 28000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 190900000, "navPerUnit": 0, "basis": -244827, "annualisedBasisBps100": -20}
+{"type": "MD", "ts": 28200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190635278, "qty": 643}
+{"type": "MD", "ts": 28400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190581510, "qty": 620}
+{"type": "MD", "ts": 28600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190555430, "qty": 290}
+{"type": "MD", "ts": 28800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190536867, "qty": 169}
+{"type": "MD", "ts": 29000, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190589000, "qty": 340}
+{"type": "FV", "ts": 29000, "symbol": "HSI.HK", "exchange": "HKEX", "futuresFv": 190900000, "navPerUnit": 0, "basis": -331034, "annualisedBasisBps100": -20}
+{"type": "MD", "ts": 29200, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190540724, "qty": 683}
+{"type": "MD", "ts": 29400, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190505471, "qty": 708}
+{"type": "MD", "ts": 29600, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190464630, "qty": 183}
+{"type": "MD", "ts": 29800, "symbol": "HSI.HK", "exchange": "HKEX", "price": 190490768, "qty": 697}

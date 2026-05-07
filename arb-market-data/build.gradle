@@ -26,6 +26,8 @@ dependencies {
 
 jar {
     manifest {
+        // Primary entry point for synthetic tick simulation.
+        // For replay mode: java -cp app.jar com.arb.marketdata.ReplayMain [--scenario <name>] [--speed <N>]
         attributes 'Main-Class': 'com.arb.marketdata.MarketDataMain'
     }
 }

@@ -31,6 +31,10 @@ interface AppState {
   orders: OrderUpdateMsg[]
   handleOrderUpdate: (msg: OrderUpdateMsg) => void
 
+  // P&L tracking
+  pnlHistory: Array<{ ts: number; pnl: number }>
+  cumulativePnl: number
+
   // Strategies
   strategies: StrategyState[]
   toggleStrategy: (id: string) => void
@@ -70,7 +74,23 @@ export const useStore = create<AppState>()((set) => ({
 
   orders: [],
   handleOrderUpdate: (msg) =>
-    set((s) => ({ orders: [msg, ...s.orders].slice(0, 100) })),
+    set((s) => {
+      const orders = [msg, ...s.orders].slice(0, 100)
+      let pnlDelta = 0
+      if (msg.status === 'FILLED' || msg.status === 'PARTIAL_FILL') {
+        // fillPrice is ×10^4; divide by 10^4 then multiply by fillQty → HKD notional
+        const contribution = (msg.fillPrice / 10_000) * msg.fillQty
+        pnlDelta = msg.side === 'SELL' ? contribution : -contribution
+      }
+      const cumulativePnl = s.cumulativePnl + pnlDelta
+      const newPoint = pnlDelta !== 0
+        ? [{ ts: msg.ts, pnl: cumulativePnl }, ...s.pnlHistory].slice(0, 60)
+        : s.pnlHistory
+      return { orders, cumulativePnl, pnlHistory: newPoint }
+    }),
+
+  pnlHistory: [],
+  cumulativePnl: 0,
 
   strategies: STRATEGIES.map((id) => ({ id, enabled: true })),
   toggleStrategy: (id) =>

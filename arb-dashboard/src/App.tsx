@@ -4,6 +4,7 @@ import { LiveMonitor } from './components/LiveMonitor'
 import { OrderBook } from './components/OrderBook'
 import { ControlPanel } from './components/ControlPanel'
 import { SystemHealth } from './components/SystemHealth'
+import { PnlPanel } from './components/PnlPanel'
 import { Moon, Sun } from 'lucide-react'
 import { Button } from './components/ui/button'
 
@@ -44,6 +45,8 @@ export default function App() {
           <SystemHealth />
           {/* Order Book */}
           <OrderBook />
+          {/* P&L Panel */}
+          <PnlPanel />
           {/* Control Panel */}
           <ControlPanel send={send} />
         </div>
