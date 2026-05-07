@@ -1,0 +1,62 @@
+plugins {
+    id 'java'
+}
+
+configurations {
+    sbeCodegen
+}
+
+ext {
+    aeronVersion  = '1.48.0'
+    sbeVersion    = '1.35.1'
+    agronaVersion = '2.2.1'
+}
+
+dependencies {
+    implementation "io.aeron:aeron-client:${aeronVersion}"
+    implementation "io.aeron:aeron-driver:${aeronVersion}"
+    implementation "org.agrona:agrona:${agronaVersion}"
+
+    sbeCodegen "uk.co.real-logic:sbe-all:${sbeVersion}"
+
+    testImplementation "io.aeron:aeron-client:${aeronVersion}"
+    testImplementation "io.aeron:aeron-driver:${aeronVersion}"
+    testImplementation "org.agrona:agrona:${agronaVersion}"
+}
+
+def sbeGeneratedDir = layout.buildDirectory.dir('generated/sources/sbe/main/java')
+
+task generateSbeStubs(type: JavaExec) {
+    description = 'Generate Java stubs from SBE XML schema using SbeTool'
+    group       = 'build'
+
+    mainClass  = 'uk.co.real_logic.sbe.SbeTool'
+    classpath  = configurations.sbeCodegen
+
+    def schemaFile = file('src/main/resources/sbe/arb-messages.xml')
+
+    inputs.file schemaFile
+    outputs.dir sbeGeneratedDir
+
+    doFirst {
+        sbeGeneratedDir.get().asFile.mkdirs()
+    }
+
+    systemProperties = [
+        'sbe.output.dir'               : sbeGeneratedDir.get().asFile.absolutePath,
+        'sbe.java.generate.interfaces' : 'true',
+        'sbe.xinclude.aware'           : 'true'
+    ]
+
+    args schemaFile.absolutePath
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir sbeGeneratedDir
+        }
+    }
+}
+
+compileJava.dependsOn generateSbeStubs

@@ -1,0 +1,14 @@
+plugins {
+    id 'java'
+}
+
+ext {
+    aeronVersion  = '1.48.0'
+    agronaVersion = '2.2.1'
+}
+
+dependencies {
+    implementation project(':arb-common')
+    implementation "io.aeron:aeron-client:${aeronVersion}"
+    implementation "org.agrona:agrona:${agronaVersion}"
+}

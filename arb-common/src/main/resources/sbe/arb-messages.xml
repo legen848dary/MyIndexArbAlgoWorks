@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbe:messageSchema xmlns:sbe="http://fixprotocol.io/2016/sbe"
+                   package="com.arb.sbe"
+                   id="1"
+                   version="0"
+                   semanticVersion="5.2"
+                   description="Index Arb System - All Messages"
+                   byteOrder="littleEndian">
+
+    <types>
+
+        <!-- Standard SBE message framing header -->
+        <composite name="messageHeader" description="Message identifiers and length of message root">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId"  primitiveType="uint16"/>
+            <type name="schemaId"    primitiveType="uint16"/>
+            <type name="version"     primitiveType="uint16"/>
+        </composite>
+
+        <!-- Enumerations -->
+        <enum name="Exchange" encodingType="uint8" description="Source exchange identifier">
+            <validValue name="HKEX"   description="Hong Kong Exchange">0</validValue>
+            <validValue name="TAIFEX" description="Taiwan Futures Exchange">1</validValue>
+            <validValue name="CSI"    description="China Securities Index">2</validValue>
+        </enum>
+
+        <enum name="Side" encodingType="uint8" description="Order side">
+            <validValue name="BUY">0</validValue>
+            <validValue name="SELL">1</validValue>
+        </enum>
+
+        <enum name="OrderType" encodingType="uint8" description="Order type">
+            <validValue name="MARKET">0</validValue>
+            <validValue name="LIMIT">1</validValue>
+        </enum>
+
+        <enum name="EventType" encodingType="uint8" description="System event severity">
+            <validValue name="INFO">0</validValue>
+            <validValue name="WARNING">1</validValue>
+            <validValue name="ERROR">2</validValue>
+        </enum>
+
+    </types>
+
+    <!--
+        Message 1: MarketDataTick
+        Published by arb-market-data to MARKET_DATA_CHANNEL.
+        price and qty are fixed-point longs (scaled by 10^4) — NEVER use double in hot path.
+    -->
+    <sbe:message name="MarketDataTick" id="1" description="Normalized market data tick">
+        <field name="symbol"    id="1" type="char"    length="12" description="Instrument symbol (e.g. 0700.HK)"/>
+        <field name="exchange"  id="2" type="Exchange"             description="Source exchange"/>
+        <field name="price"     id="3" type="int64"                description="Price scaled by 10^4"/>
+        <field name="qty"       id="4" type="int64"                description="Quantity"/>
+        <field name="timestamp" id="5" type="int64"                description="Epoch nanoseconds"/>
+    </sbe:message>
+
+    <!--
+        Message 2: OrderRequest
+        Published by arb-strategy to ORDER_CHANNEL.
+        Use OrderType=MARKET for all prototype fills (BasketSlicer assumption).
+    -->
+    <sbe:message name="OrderRequest" id="2" description="Order request from strategy engine">
+        <field name="symbol"    id="1" type="char"      length="12" description="Instrument symbol"/>
+        <field name="side"      id="2" type="Side"                  description="BUY or SELL"/>
+        <field name="price"     id="3" type="int64"                 description="Price scaled by 10^4 (0 for MARKET orders)"/>
+        <field name="qty"       id="4" type="int64"                 description="Quantity"/>
+        <field name="orderType" id="5" type="OrderType"             description="MARKET or LIMIT"/>
+    </sbe:message>
+
+    <!--
+        Message 3: SystemEvent
+        Published to arb-web-gateway for GUI alerts and operational logs.
+    -->
+    <sbe:message name="SystemEvent" id="3" description="System event for GUI alerting and ops logging">
+        <field name="eventType"  id="1" type="EventType"           description="INFO / WARNING / ERROR"/>
+        <field name="timestamp"  id="2" type="int64"               description="Epoch nanoseconds"/>
+        <field name="message"    id="3" type="char"   length="128" description="Human-readable message"/>
+    </sbe:message>
+
+</sbe:messageSchema>

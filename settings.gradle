@@ -1,0 +1,7 @@
+rootProject.name = 'myIndexArbAlgoWorks'
+
+include 'arb-common'
+include 'arb-market-data'
+include 'arb-strategy'
+include 'arb-execution'
+include 'arb-web-gateway'
