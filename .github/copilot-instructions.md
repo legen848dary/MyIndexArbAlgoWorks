@@ -63,7 +63,8 @@ docker compose down          # Tear down
 - **MarketDataGateway** (`arb-market-data`): Feed handlers for HKEX, TAIFEX, CSI that normalize ticks and publish to Aeron. Publishes `MarketDataTick`, `QuoteTick`, `MarketVolumeTick`, `ReferenceDataRecord`.
 - **FvEngine** (`arb-gambit`): Two-layer pricing engine.
   - *Hot path* (zero-GC): `NavCalculator` (ETF NAV) + `FuturesFvCalculator` (cost-of-carry, integer arithmetic). Publishes `FvUpdate` to `FV_CHANNEL` (stream 1005).
-  - *Warm path* (periodic, allocation-safe): **OpenGamma Strata** (`strata-pricer`) for Black-Scholes IV surface calibration and dividend PV curves. Results stored in `AtomicLong` fields read by the hot path. B-S/Monte Carlo are **never** invoked per-tick.
+  - *Warm path* (periodic ~30s, allocation-safe): **OpenGamma Strata** `strata-pricer:2.12.56` for yield curves + dividend PV; **finmath-lib** `6.0.20` for analytic B-S (near-zero-GC, no boxing trap unlike Strata B-S); **Decimal4j** `1.0.3` for hot-path fixed-point `long` arithmetic.
+  - Bridge: `AtomicLong.setRelease()` (warm writer) → `AtomicLong.getAcquire()` (hot reader). **NOT** `LongAdder` — that is for multi-writer counters only and has no `set(value)` method.
 - **Sequencer** (`arb-strategy`): Single-threaded `ArbSequencer` — deterministic event ordering, reads from `MARKET_DATA_CHANNEL`, dispatches to registered `Strategy`, writes signals to `ORDER_CHANNEL`.
 - **StrategyEngine** (`arb-strategy`): Implements `Strategy` interface (`onMarketData(Tick)`, `onTimer()`). Calculates Fair Value via `IndexCalculator` and `BasisCalculator`. Strategies are enable/disable-configurable via a config file.
 - **ExecutionGateway** (`arb-execution`): Decodes `OrderRequest` SBE, applies pre-trade risk checks, routes to mock `ExchangeConnector`. Fills returned to `ORDER_UPDATE_CHANNEL`. Mock adds 10–50µs random jitter.
@@ -135,7 +136,7 @@ Follow `devdocs/MyIndexArbAlgoSystemPlan.md` phase by phase. After completing ea
 | 1 | The Eyes | Market data feed handlers (HKEX, TAIFEX, CSI), normalization |
 | 2 | The Brain | Sequencer + FV/Basis calculators (Zero-GC verified) |
 | 2a | The Senses | Extended market data types (QuoteTick/IEP, MarketVolumeTick/IEV, ReferenceDataRecord) + ReferenceDataStore |
-| 2b | The Gambit | `arb-gambit` module — two-layer pricing: hot-path zero-GC NAV + FV (hand-rolled); warm-path Black-Scholes + Monte Carlo via **OpenGamma Strata** |
+| 2b | The Gambit | `arb-gambit` — hot-path zero-GC NAV + FV (hand-rolled `long` arithmetic); warm-path dividend PV curves (**Strata** `2.12.56`); analytic B-S (**finmath-lib** `6.0.20`, near-zero-GC); bridge via `AtomicLong.setRelease/getAcquire` |
 | 3 | The Alpha | Four arb strategy implementations + config toggle |
 | 4 | The Hands | Execution gateway, pre-trade risk, `BasketSlicer` |
 | 5 | The Face | `arb-web-gateway` (Vert.x) + React dashboard (4 views, dark mode) |
