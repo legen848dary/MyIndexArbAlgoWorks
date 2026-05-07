@@ -9,6 +9,10 @@ import io.vertx.core.Vertx;
 public final class GatewayMain {
 
     public static void main(final String[] args) {
+        // Enable Aeron client mode when AERON_CLIENT_MODE env var is set to "true"
+        if ("true".equalsIgnoreCase(System.getenv("AERON_CLIENT_MODE"))) {
+            System.setProperty("arb.aeron.client", "true");
+        }
         final Vertx vertx = Vertx.vertx();
         vertx.deployVerticle(new WebGatewayVerticle(), result -> {
             if (result.succeeded()) {

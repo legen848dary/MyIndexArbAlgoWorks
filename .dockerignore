@@ -1,0 +1,8 @@
+.git
+.gradle
+build/
+*/build/
+arb-dashboard/node_modules/
+arb-dashboard/dist/
+*.md
+.idea/

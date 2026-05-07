@@ -258,8 +258,8 @@ constructor and reused via flyweight patterns.
 | **2b** | `1d7a01e` | `arb-gambit` module: `EtfDefinition`, `NavCalculator`, `FuturesFvCalculator`, `FvEngine`; warm path: `DividendCalendar`, `VolSurfaceCalibrator`; Strata + finmath-lib + Decimal4j wired; 14 new tests | 25 ✅ |
 | **3** | `af66ad2` | 8 strategies (`HkexBasisArb`, `MhiHsiBasisArb`, `TwseEtfArb`, `CrossBorderEtfArb`, `SsfBasisArb`, `SsfCalendarSpreadArb`, `HkCnIndexPairArb`, `VolSkewBasisArb`); `StrategyRegistry`; `SpreadVolEstimator` (Welford rolling σ); `MonteCarloPositionSizer` (finmath-lib cold-path VaR → max lots); 16 unit tests + 8 BDD scenarios | 41 ✅ |
 | **4** | `943dc3b` | `arb-execution`: `RiskGateway` (fat-finger qty/price + position limits), `MockExchangeConnector` (10–50 μs simulated fill), `BasketSlicer`, `PositionBook`; SBE msg-8 `OrderUpdate` + `orderId` on `OrderRequest`; 9 unit tests + 5 BDD scenarios | 55 ✅ |
-| **5** | *(pending)* | `arb-web-gateway`: Vert.x 4.5.7 verticle, Aeron→WebSocket bridge, `JsonMessages` SBE→JSON, `AeronControlPublisher` (4 tests); `arb-dashboard`: React 18 + Vite + Tailwind + Recharts cockpit — `LiveMonitor` (FV vs Market chart), `OrderBook`, `ControlPanel` (per-strategy toggles + Emergency Halt), `SystemHealth` (latency histogram + event log), dark/light mode | 68 ✅ |
-| **6** | *(planned)* | Dockerfiles, `docker-compose.yml`, `ipc: host`, `start-all.sh` | — |
+| **5** | `16a3a1f` | `arb-web-gateway`: Vert.x 4.5.7 verticle, Aeron→WebSocket bridge, `JsonMessages` SBE→JSON, `AeronControlPublisher` (4 tests); `arb-dashboard`: React 18 + Vite + Tailwind + Recharts cockpit — `LiveMonitor` (FV vs Market chart), `OrderBook`, `ControlPanel` (per-strategy toggles + Emergency Halt), `SystemHealth` (latency histogram + event log), dark/light mode | 68 ✅ |
+| **6** | *(pending)* | Dockerfiles (multi-stage Gradle→JRE21 + Node→Nginx); `docker-compose.yml` (`ipc: host` + `/dev/shm` shared); `start-all.sh`; `MarketDataMain`, `StrategyMain`, `ExecutionMain` launcher classes; shadow JAR packaging | 68 ✅ |
 | **7** | *(planned)* | `ReplayEngine`, backtest loop, screen recording deliverable | — |
 
 ---
@@ -272,6 +272,14 @@ constructor and reused via flyweight patterns.
 - Gradle 9.x (wrapper included — use `./gradlew`)
 - Docker Desktop (for Phase 6+)
 - Node.js 20+ (for `arb-dashboard`, Phase 5+)
+
+### Docker Compose (recommended)
+
+```bash
+./start-all.sh          # build + start all 5 services
+# Dashboard:   http://localhost:3000
+# Gateway WS:  ws://localhost:8080/ws
+```
 
 ### Build
 

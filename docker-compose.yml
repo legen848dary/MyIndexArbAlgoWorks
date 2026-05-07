@@ -1,0 +1,68 @@
+version: '3.9'
+
+services:
+
+  market-data:
+    build:
+      context: .
+      dockerfile: arb-market-data/Dockerfile
+    ipc: host
+    volumes:
+      - /dev/shm:/dev/shm
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "ls /dev/shm/aeron* 2>/dev/null && echo ok || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+
+  strategy:
+    build:
+      context: .
+      dockerfile: arb-strategy/Dockerfile
+    ipc: host
+    volumes:
+      - /dev/shm:/dev/shm
+    depends_on:
+      market-data:
+        condition: service_healthy
+    restart: unless-stopped
+
+  execution:
+    build:
+      context: .
+      dockerfile: arb-execution/Dockerfile
+    ipc: host
+    volumes:
+      - /dev/shm:/dev/shm
+    depends_on:
+      market-data:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web-gateway:
+    build:
+      context: .
+      dockerfile: arb-web-gateway/Dockerfile
+    ipc: host
+    volumes:
+      - /dev/shm:/dev/shm
+    environment:
+      - AERON_CLIENT_MODE=true
+    ports:
+      - "8080:8080"
+    depends_on:
+      market-data:
+        condition: service_healthy
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: arb-dashboard/Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - web-gateway
+    restart: unless-stopped

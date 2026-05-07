@@ -58,10 +58,16 @@ public final class WebGatewayVerticle extends AbstractVerticle {
 
     @Override
     public void start(final Promise<Void> startPromise) {
-        // Launch embedded Aeron Media Driver
-        mediaDriver = MediaDriver.launchEmbedded();
-        final Aeron.Context ctx = new Aeron.Context()
-            .aeronDirectoryName(mediaDriver.aeronDirectoryName());
+        // When arb.aeron.client=true, connect to an existing MediaDriver (Docker client mode).
+        // Otherwise launch an embedded MediaDriver (standalone / dev mode).
+        final boolean clientMode = Boolean.getBoolean("arb.aeron.client");
+        final Aeron.Context ctx;
+        if (clientMode) {
+            ctx = new Aeron.Context().aeronDirectoryName("/dev/shm/aeron");
+        } else {
+            mediaDriver = MediaDriver.launchEmbedded();
+            ctx = new Aeron.Context().aeronDirectoryName(mediaDriver.aeronDirectoryName());
+        }
         aeron = Aeron.connect(ctx);
 
         // Subscribers — AeronSubscriber wraps a Subscription
