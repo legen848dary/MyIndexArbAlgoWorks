@@ -71,7 +71,17 @@ docker compose down          # Tear down
 
 ### Messaging
 - All inter-component communication uses **Aeron IPC** via `AeronPublisher`/`AeronSubscriber` wrappers defined in `arb-common`.
-- All messages are **SBE-encoded**. Schemas live in `arb-common`: `MessageHeader.xml`, `MarketDataTick.xml`, `OrderRequest.xml`, `SystemEvent.xml` (GUI alerts/logs). Java stubs generated via `SbeTool`.
+- All messages are **SBE-encoded**. Schemas live in `arb-common/src/main/resources/sbe/arb-messages.xml`. Java stubs generated via `SbeTool`.
+- Current message types:
+
+| ID | Message | Published by | Key Fields |
+|----|---------|-------------|------------|
+| 1 | `MarketDataTick` | `arb-market-data` | symbol, exchange, price, qty, timestamp |
+| 2 | `OrderRequest` | `arb-strategy` | symbol, side, price, qty, orderType |
+| 3 | `SystemEvent` | any | eventType, timestamp, message |
+| 4 | `QuoteTick` | `arb-market-data` | symbol, exchange, iep, bidPrice, askPrice, timestamp |
+| 5 | `MarketVolumeTick` | `arb-market-data` | symbol, exchange, iev, dailyVolume, timestamp |
+| 6 | `ReferenceDataRecord` | `arb-market-data` | symbol, exchange, lotSize, tickSize, currency, constituentWeight |
 
 ### Zero-GC Hot Path
 - **No object allocation in the hot path.** Use `agrona.collections.Int2ObjectHashMap` for constituent lookups (not `HashMap`).
@@ -82,8 +92,11 @@ docker compose down          # Tear down
 All strategies extend the `Strategy` interface:
 ```java
 interface Strategy {
-    void onMarketData(Tick tick);
-    void onTimer();
+    void onMarketData(MarketDataTickDecoder tick, OrderSink orders);
+    void onQuote(QuoteTickDecoder tick, OrderSink orders);          // IEP / bid-ask
+    void onMarketVolume(MarketVolumeTickDecoder tick, OrderSink orders); // IEV / daily volume
+    void onReferenceData(ReferenceDataRecordDecoder record);        // static ref data — no orders
+    void onTimer(long nowNanos, OrderSink orders);
 }
 ```
 
@@ -117,6 +130,7 @@ Follow `devdocs/MyIndexArbAlgoSystemPlan.md` phase by phase. After completing ea
 | 0 | The Spinal Cord | Gradle scaffold, Aeron IPC backbone, SBE schemas + stubs |
 | 1 | The Eyes | Market data feed handlers (HKEX, TAIFEX, CSI), normalization |
 | 2 | The Brain | Sequencer + FV/Basis calculators (Zero-GC verified) |
+| 2a | The Senses | Extended market data types (QuoteTick/IEP, MarketVolumeTick/IEV, ReferenceDataRecord) + ReferenceDataStore |
 | 3 | The Alpha | Four arb strategy implementations + config toggle |
 | 4 | The Hands | Execution gateway, pre-trade risk, `BasketSlicer` |
 | 5 | The Face | `arb-web-gateway` (Vert.x) + React dashboard (4 views, dark mode) |
