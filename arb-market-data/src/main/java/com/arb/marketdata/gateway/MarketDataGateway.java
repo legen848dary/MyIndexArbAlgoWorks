@@ -11,13 +11,12 @@ import java.nio.ByteBuffer;
 /**
  * Encodes a normalized tick as an SBE MarketDataTick and publishes it
  * to the Aeron MARKET_DATA_CHANNEL.
- *
  * This class is NOT thread-safe — it is owned by a single feed-handler thread.
  * All fields are pre-allocated; zero heap allocation in the publish path.
  */
 public class MarketDataGateway implements AutoCloseable {
 
-    private static final int BUFFER_SIZE = 256;
+    private static final int BUFFER_SIZE = 1024;
 
     private final AeronPublisher       publisher;
     private final UnsafeBuffer         txBuffer      = new UnsafeBuffer(ByteBuffer.allocateDirect(BUFFER_SIZE));
