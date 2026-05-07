@@ -199,6 +199,8 @@ Stream  1005 — FV_STREAM            Publishers: arb-gambit (FvEngine)
 
 ## Strategy Catalogue
 
+> 📖 **[Full plain-English strategy guide with jargon glossary →](docs/strategies.md)**
+
 *(Updated at end of each phase.)*
 
 | ID | Strategy | Group | Markets | Signal | Status |
