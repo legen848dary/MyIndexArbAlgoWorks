@@ -260,7 +260,7 @@ constructor and reused via flyweight patterns.
 | **4** | `943dc3b` | `arb-execution`: `RiskGateway` (fat-finger qty/price + position limits), `MockExchangeConnector` (10–50 μs simulated fill), `BasketSlicer`, `PositionBook`; SBE msg-8 `OrderUpdate` + `orderId` on `OrderRequest`; 9 unit tests + 5 BDD scenarios | 55 ✅ |
 | **5** | `16a3a1f` | `arb-web-gateway`: Vert.x 4.5.7 verticle, Aeron→WebSocket bridge, `JsonMessages` SBE→JSON, `AeronControlPublisher` (4 tests); `arb-dashboard`: React 18 + Vite + Tailwind + Recharts cockpit — `LiveMonitor` (FV vs Market chart), `OrderBook`, `ControlPanel` (per-strategy toggles + Emergency Halt), `SystemHealth` (latency histogram + event log), dark/light mode | 68 ✅ |
 | **6** | `c1d6b8b` | Dockerfiles (multi-stage Gradle→JRE21 + Node→Nginx); `docker-compose.yml` (`ipc: host` + `/dev/shm` shared); `start-all.sh`; `MarketDataMain`, `StrategyMain`, `ExecutionMain` launcher classes; shadow JAR packaging | 68 ✅ |
-| **7** | *(pending)* | `ReplayEngine` + `ScenarioLoader` + pre-baked `hkex-basis-arb-win.jsonl` (180 frames, 3-phase arb scenario); `ReplayMain`; dashboard P&L panel (`PnlPanel`, cumulative AreaChart, green/red P&L); `docs/replay-scenario.md` walkthrough | 73 ✅ |
+| **7** | `a1ee6f9` | `ReplayEngine` + `ScenarioLoader` + pre-baked `hkex-basis-arb-win.jsonl` (180 frames, 3-phase arb scenario); `ReplayMain`; dashboard P&L panel (`PnlPanel`, cumulative AreaChart, green/red P&L); `docs/replay-scenario.md` walkthrough | 74 ✅ |
 
 ---
 
