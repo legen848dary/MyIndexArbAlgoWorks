@@ -43,6 +43,7 @@ public final class ArbSequencer implements AutoCloseable {
     private final QuoteTickDecoder           quoteDecoder   = new QuoteTickDecoder();
     private final MarketVolumeTickDecoder    volDecoder     = new MarketVolumeTickDecoder();
     private final ReferenceDataRecordDecoder refDataDecoder = new ReferenceDataRecordDecoder();
+    private final FvUpdateDecoder            fvDecoder      = new FvUpdateDecoder();
     private final MessageHeaderEncoder       headerEncoder  = new MessageHeaderEncoder();
     private final OrderRequestEncoder        orderEncoder   = new OrderRequestEncoder();
     private final UnsafeBuffer               txBuffer       =
@@ -123,6 +124,10 @@ public final class ArbSequencer implements AutoCloseable {
             case ReferenceDataRecordDecoder.TEMPLATE_ID:
                 refDataDecoder.wrap(buffer, msgOffset, blockLength, version);
                 strategy.onReferenceData(refDataDecoder);
+                break;
+            case FvUpdateDecoder.TEMPLATE_ID:
+                fvDecoder.wrap(buffer, msgOffset, blockLength, version);
+                strategy.onFvUpdate(fvDecoder, orderSink);
                 break;
             default:
                 break; // unknown templateId — skip silently

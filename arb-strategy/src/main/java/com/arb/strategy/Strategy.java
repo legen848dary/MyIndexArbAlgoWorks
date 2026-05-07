@@ -1,9 +1,6 @@
 package com.arb.strategy;
 
-import com.arb.sbe.MarketDataTickDecoder;
-import com.arb.sbe.MarketVolumeTickDecoder;
-import com.arb.sbe.QuoteTickDecoder;
-import com.arb.sbe.ReferenceDataRecordDecoder;
+import com.arb.sbe.*;
 
 /**
  * Plug-and-play strategy interface.
@@ -15,28 +12,20 @@ import com.arb.sbe.ReferenceDataRecordDecoder;
  */
 public interface Strategy {
 
-    /**
-     * Called for every decoded {@link MarketDataTickDecoder} on the MARKET_DATA_CHANNEL.
-     * The decoder is a flyweight positioned at this message — do NOT store a reference across calls.
-     */
     void onMarketData(MarketDataTickDecoder tick, OrderSink orders);
 
-    /**
-     * Called for every decoded {@link QuoteTickDecoder} (templateId=4): IEP, bid, ask.
-     * Default no-op — override in strategies that consume quote data.
-     */
+    /** Called for every decoded {@link FvUpdateDecoder} (templateId=7): NAV, FV, basis BPS. */
+    default void onFvUpdate(FvUpdateDecoder fv, OrderSink orders) {}
+
+    /** Called for every decoded {@link QuoteTickDecoder} (templateId=4): IEP, bid, ask. */
     default void onQuote(QuoteTickDecoder quote, OrderSink orders) {}
 
-    /**
-     * Called for every decoded {@link MarketVolumeTickDecoder} (templateId=5): IEV, daily volume.
-     * Default no-op — override in strategies that consume volume data.
-     */
+    /** Called for every decoded {@link MarketVolumeTickDecoder} (templateId=5): IEV, daily volume. */
     default void onMarketVolume(MarketVolumeTickDecoder vol, OrderSink orders) {}
 
     /**
      * Called for every decoded {@link ReferenceDataRecordDecoder} (templateId=6): static ref data.
      * No {@link OrderSink} — reference data does not trigger orders.
-     * Default no-op — override in strategies that need lot/tick size or constituent weight.
      */
     default void onReferenceData(ReferenceDataRecordDecoder refData) {}
 

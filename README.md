@@ -199,18 +199,18 @@ Stream  1005 — FV_STREAM            Publishers: arb-gambit (FvEngine)
 
 ## Strategy Catalogue
 
-*(Updated at end of each phase. Phase 3 strategies are planned; marked with 🔲 until implemented.)*
+*(Updated at end of each phase.)*
 
 | ID | Strategy | Group | Markets | Signal | Status |
 |---|---|---|---|---|---|
-| A1 | `HkexBasisArb` | Index Futures Arb | HKEX | `annualisedBasisBps` from `FvUpdate` | 🔲 Phase 3 |
-| A2 | `MhiHsiBasisArb` | Index Futures Arb | HKEX | MHI/HSI cross-contract spread | 🔲 Phase 3 |
-| B1 | `TwseEtfArb` | ETF Arb | TAIFEX / TWSE | ETF market price vs `NavCalculator` | 🔲 Phase 3 |
-| B2 | `CrossBorderEtfArb` | ETF Arb | HKEX / SGX | CSOP A50 ETF vs SGX A50 futures | 🔲 Phase 3 |
-| C1 | `SsfBasisArb` | SSF Arb | TAIFEX / TWSE | TSMC SSF vs TSMC spot carry | 🔲 Phase 3 |
-| C2 | `SsfCalendarSpreadArb` | SSF Arb | TAIFEX | Near vs far SSF calendar spread | 🔲 Phase 3 |
-| D1 | `HkCnIndexPairArb` | Pair Trading | HKEX / CSI | HSI vs CSI300 β-adjusted Z-score | 🔲 Phase 3 |
-| E1 | `VolSkewBasisArb` | Vol-Informed Arb | HKEX | IV-adaptive basis entry threshold | 🔲 Phase 3 |
+| A1 | `HkexBasisArb` | Index Futures Arb | HKEX | `annualisedBasisBps` from `FvUpdate` | ✅ Phase 3 |
+| A2 | `MhiHsiBasisArb` | Index Futures Arb | HKEX | MHI/HSI cross-contract spread | ✅ Phase 3 |
+| B1 | `TwseEtfArb` | ETF Arb | TAIFEX / TWSE | ETF market price vs `NavCalculator` | ✅ Phase 3 |
+| B2 | `CrossBorderEtfArb` | ETF Arb | HKEX / SGX | CSOP A50 ETF vs SGX A50 futures | ✅ Phase 3 |
+| C1 | `SsfBasisArb` | SSF Arb | TAIFEX / TWSE | TSMC SSF vs TSMC spot carry | ✅ Phase 3 |
+| C2 | `SsfCalendarSpreadArb` | SSF Arb | TAIFEX | Near vs far SSF calendar spread | ✅ Phase 3 |
+| D1 | `HkCnIndexPairArb` | Pair Trading | HKEX / CSI | HSI vs CSI300 β-adjusted Z-score | ✅ Phase 3 |
+| E1 | `VolSkewBasisArb` | Vol-Informed Arb | HKEX | IV-adaptive basis entry threshold | ✅ Phase 3 |
 
 ### Strategy Configuration
 
@@ -256,7 +256,7 @@ constructor and reused via flyweight patterns.
 | **2** | `8817cc8` | `Strategy` interface, `IndexCalculator` (50-constituent zero-GC), `BasisCalculator`, `ArbSequencer` event loop, `OrderSink`; 5 unit tests incl. zero-GC 100k iteration | 9 ✅ |
 | **2a** | `bacf362` | SBE messages 4–7 (`QuoteTick`, `MarketVolumeTick`, `ReferenceDataRecord`, `FvUpdate`); `ReferenceDataStore` (Agrona `Object2ObjectHashMap`); 7 new gateways/handlers; `FV_STREAM=1005`; extended Strategy dispatch; BDD (3 new scenarios) | 15 ✅ |
 | **2b** | `1d7a01e` | `arb-gambit` module: `EtfDefinition`, `NavCalculator`, `FuturesFvCalculator`, `FvEngine`; warm path: `DividendCalendar`, `VolSurfaceCalibrator`; Strata + finmath-lib + Decimal4j wired; 14 new tests | 25 ✅ |
-| **3** | *(pending)* | 8 strategies, `StrategyRegistry`, `MonteCarloPositionSizer`, BDD (8 scenarios) | — |
+| **3** | *(pending)* | 8 strategies (`HkexBasisArb`, `MhiHsiBasisArb`, `TwseEtfArb`, `CrossBorderEtfArb`, `SsfBasisArb`, `SsfCalendarSpreadArb`, `HkCnIndexPairArb`, `VolSkewBasisArb`); `StrategyRegistry`; `SpreadVolEstimator` (Welford rolling σ); `MonteCarloPositionSizer` (finmath-lib cold-path VaR → max lots); 16 unit tests + 8 BDD scenarios | 41 ✅ |
 | **4** | *(planned)* | Pre-trade risk, `MockExchangeConnector`, `BasketSlicer` | — |
 | **5** | *(planned)* | `arb-web-gateway` (Vert.x), React dashboard, live charts, dark mode | — |
 | **6** | *(planned)* | Dockerfiles, `docker-compose.yml`, `ipc: host`, `start-all.sh` | — |

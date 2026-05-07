@@ -3,17 +3,23 @@ plugins {
 }
 
 ext {
-    aeronVersion  = '1.48.0'
-    agronaVersion = '2.2.1'
+    aeronVersion     = '1.48.0'
+    agronaVersion    = '2.2.1'
+    cucumberVersion  = '7.22.1'
 }
 
 dependencies {
     implementation project(':arb-common')
+    implementation project(':arb-gambit')
     implementation "io.aeron:aeron-client:${aeronVersion}"
     implementation "org.agrona:agrona:${agronaVersion}"
 
     testImplementation project(':arb-common')
+    testImplementation project(':arb-gambit')
     testImplementation "io.aeron:aeron-client:${aeronVersion}"
     testImplementation "io.aeron:aeron-driver:${aeronVersion}"
     testImplementation "org.agrona:agrona:${agronaVersion}"
+    testImplementation "io.cucumber:cucumber-java:${cucumberVersion}"
+    testImplementation "io.cucumber:cucumber-junit-platform-engine:${cucumberVersion}"
+    testImplementation "org.junit.platform:junit-platform-suite:1.10.2"
 }
