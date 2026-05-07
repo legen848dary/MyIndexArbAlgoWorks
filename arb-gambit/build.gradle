@@ -3,8 +3,11 @@ plugins {
 }
 
 ext {
-    aeronVersion  = '1.48.0'
-    agronaVersion = '2.2.1'
+    aeronVersion   = '1.48.0'
+    agronaVersion  = '2.2.1'
+    strataVersion  = '2.12.56'
+    finmathVersion = '6.0.20'
+    decimal4jVersion = '1.0.3'
 }
 
 dependencies {
@@ -12,8 +15,20 @@ dependencies {
     implementation "io.aeron:aeron-client:${aeronVersion}"
     implementation "org.agrona:agrona:${agronaVersion}"
 
+    // Warm path: yield curves, dividend PV discounting, ETD product models
+    implementation "com.opengamma.strata:strata-pricer:${strataVersion}"
+    implementation "com.opengamma.strata:strata-product:${strataVersion}"
+
+    // Warm/cold path: analytic B-S (near-zero-GC), Monte Carlo VaR
+    implementation "net.finmath:finmath-lib:${finmathVersion}"
+
+    // Hot path: zero-GC fixed-point long arithmetic via DecimalArithmetic API
+    implementation "org.decimal4j:decimal4j:${decimal4jVersion}"
+
     testImplementation project(':arb-common')
     testImplementation "io.aeron:aeron-client:${aeronVersion}"
     testImplementation "io.aeron:aeron-driver:${aeronVersion}"
     testImplementation "org.agrona:agrona:${agronaVersion}"
+    testImplementation "com.opengamma.strata:strata-pricer:${strataVersion}"
+    testImplementation "net.finmath:finmath-lib:${finmathVersion}"
 }
