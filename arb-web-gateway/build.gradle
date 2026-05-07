@@ -11,7 +11,14 @@ ext {
 dependencies {
     implementation project(':arb-common')
     implementation "io.aeron:aeron-client:${aeronVersion}"
+    implementation "io.aeron:aeron-driver:${aeronVersion}"
     implementation "org.agrona:agrona:${agronaVersion}"
     implementation "io.vertx:vertx-core:${vertxVersion}"
     implementation "io.vertx:vertx-web:${vertxVersion}"
+
+    testImplementation project(':arb-common')
+    testImplementation "io.aeron:aeron-client:${aeronVersion}"
+    testImplementation "org.agrona:agrona:${agronaVersion}"
+    testImplementation "io.vertx:vertx-core:${vertxVersion}"
+    testImplementation "io.vertx:vertx-web:${vertxVersion}"
 }

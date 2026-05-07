@@ -50,8 +50,8 @@ IPC, SBE serialization, and a React operator dashboard.
 | `arb-gambit` | NAV/FV hot path + warm-path analytics | `NavCalculator`, `FuturesFvCalculator`, `FvEngine`, `DividendCalendar`, `VolSurfaceCalibrator` |
 | `arb-strategy` | Strategy interface, ArbSequencer, 8 strategies | `Strategy`, `ArbSequencer`, `HkexBasisArb`, `HkCnIndexPairArb`, … |
 | `arb-execution` | Pre-trade risk, mock exchange, basket slicing | `RiskGateway`, `MockExchangeConnector`, `BasketSlicer`, `PositionBook` |
-| `arb-web-gateway` | Aeron → WebSocket bridge (Vert.x) | `AeronBridgeVerticle` |
-| `arb-dashboard` | React operator cockpit | LiveMonitor, OrderBook, ControlPanel |
+| `arb-web-gateway` | Aeron → WebSocket bridge (Vert.x 4.5.7) | `WebGatewayVerticle`, `JsonMessages`, `AeronControlPublisher`, `GatewayMain` |
+| `arb-dashboard` | React 18 operator cockpit (Vite + Tailwind + Recharts) | `LiveMonitor`, `OrderBook`, `ControlPanel`, `SystemHealth` |
 
 ---
 
@@ -256,9 +256,9 @@ constructor and reused via flyweight patterns.
 | **2** | `8817cc8` | `Strategy` interface, `IndexCalculator` (50-constituent zero-GC), `BasisCalculator`, `ArbSequencer` event loop, `OrderSink`; 5 unit tests incl. zero-GC 100k iteration | 9 ✅ |
 | **2a** | `bacf362` | SBE messages 4–7 (`QuoteTick`, `MarketVolumeTick`, `ReferenceDataRecord`, `FvUpdate`); `ReferenceDataStore` (Agrona `Object2ObjectHashMap`); 7 new gateways/handlers; `FV_STREAM=1005`; extended Strategy dispatch; BDD (3 new scenarios) | 15 ✅ |
 | **2b** | `1d7a01e` | `arb-gambit` module: `EtfDefinition`, `NavCalculator`, `FuturesFvCalculator`, `FvEngine`; warm path: `DividendCalendar`, `VolSurfaceCalibrator`; Strata + finmath-lib + Decimal4j wired; 14 new tests | 25 ✅ |
-| **3** | *(pending)* | 8 strategies (`HkexBasisArb`, `MhiHsiBasisArb`, `TwseEtfArb`, `CrossBorderEtfArb`, `SsfBasisArb`, `SsfCalendarSpreadArb`, `HkCnIndexPairArb`, `VolSkewBasisArb`); `StrategyRegistry`; `SpreadVolEstimator` (Welford rolling σ); `MonteCarloPositionSizer` (finmath-lib cold-path VaR → max lots); 16 unit tests + 8 BDD scenarios | 41 ✅ |
-| **4** | TBD | `arb-execution`: `RiskGateway` (fat-finger qty/price + position limits), `MockExchangeConnector` (10–50 μs simulated fill), `BasketSlicer`, `PositionBook`; SBE msg-8 `OrderUpdate` + `orderId` on `OrderRequest`; 9 unit tests + 5 BDD scenarios | 55 ✅ |
-| **5** | *(planned)* | `arb-web-gateway` (Vert.x), React dashboard, live charts, dark mode | — |
+| **3** | `af66ad2` | 8 strategies (`HkexBasisArb`, `MhiHsiBasisArb`, `TwseEtfArb`, `CrossBorderEtfArb`, `SsfBasisArb`, `SsfCalendarSpreadArb`, `HkCnIndexPairArb`, `VolSkewBasisArb`); `StrategyRegistry`; `SpreadVolEstimator` (Welford rolling σ); `MonteCarloPositionSizer` (finmath-lib cold-path VaR → max lots); 16 unit tests + 8 BDD scenarios | 41 ✅ |
+| **4** | `943dc3b` | `arb-execution`: `RiskGateway` (fat-finger qty/price + position limits), `MockExchangeConnector` (10–50 μs simulated fill), `BasketSlicer`, `PositionBook`; SBE msg-8 `OrderUpdate` + `orderId` on `OrderRequest`; 9 unit tests + 5 BDD scenarios | 55 ✅ |
+| **5** | *(pending)* | `arb-web-gateway`: Vert.x 4.5.7 verticle, Aeron→WebSocket bridge, `JsonMessages` SBE→JSON, `AeronControlPublisher` (4 tests); `arb-dashboard`: React 18 + Vite + Tailwind + Recharts cockpit — `LiveMonitor` (FV vs Market chart), `OrderBook`, `ControlPanel` (per-strategy toggles + Emergency Halt), `SystemHealth` (latency histogram + event log), dark/light mode | 68 ✅ |
 | **6** | *(planned)* | Dockerfiles, `docker-compose.yml`, `ipc: host`, `start-all.sh` | — |
 | **7** | *(planned)* | `ReplayEngine`, backtest loop, screen recording deliverable | — |
 
