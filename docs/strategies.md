@@ -7,26 +7,178 @@
 
 ## Table of Contents
 
-1. [Index Arb Jargon Glossary](#1-index-arb-jargon-glossary)
-2. [Strategy Overview](#2-strategy-overview)
-3. [Group A — Index Futures Arbitrage](#group-a--index-futures-arbitrage)
+1. [Primer — What Is Index Arbitrage?](#1-primer--what-is-index-arbitrage)
+2. [Index Arb Jargon Glossary](#2-index-arb-jargon-glossary)
+3. [Strategy Overview](#3-strategy-overview)
+4. [Group A — Index Futures Arbitrage](#group-a--index-futures-arbitrage)
    - [A1 — HkexBasisArb](#a1--hkexbasisarb)
    - [A2 — MhiHsiBasisArb](#a2--mhihsisbasisarb)
-4. [Group B — ETF Arbitrage](#group-b--etf-arbitrage)
+5. [Group B — ETF Arbitrage](#group-b--etf-arbitrage)
    - [B1 — TwseEtfArb](#b1--twseetfarb)
    - [B2 — CrossBorderEtfArb](#b2--crossborderetfarb)
-5. [Group C — Single Stock Futures (SSF) Arbitrage](#group-c--single-stock-futures-ssf-arbitrage)
+6. [Group C — Single Stock Futures (SSF) Arbitrage](#group-c--single-stock-futures-ssf-arbitrage)
    - [C1 — SsfBasisArb](#c1--ssfbasisarb)
    - [C2 — SsfCalendarSpreadArb](#c2--ssfcalendarspreadadarb)
-6. [Group D — Pair Trading](#group-d--pair-trading)
+7. [Group D — Pair Trading](#group-d--pair-trading)
    - [D1 — HkCnIndexPairArb](#d1--hkcnindexpairarb)
-7. [Group E — Volatility-Informed Arbitrage](#group-e--volatility-informed-arbitrage)
+8. [Group E — Volatility-Informed Arbitrage](#group-e--volatility-informed-arbitrage)
    - [E1 — VolSkewBasisArb](#e1--volskewbasisarb)
-8. [Supporting Analytics](#8-supporting-analytics)
+9. [Supporting Analytics](#9-supporting-analytics)
 
 ---
 
-## 1. Index Arb Jargon Glossary
+## 1. Primer — What Is Index Arbitrage?
+
+> **Start here if you are new to index arb trading.**
+
+---
+
+### The One-Sentence Version
+
+Index arbitrage is the practice of profiting from price discrepancies between an index (or a product representing an index) and related instruments — futures, ETFs, or correlated indices — when the gap between them exceeds the cost of executing the trade.
+
+---
+
+### Why Do Price Gaps Exist at All?
+
+In a perfectly efficient market, related instruments should always be correctly priced relative to each other. In the real world, gaps appear for several reasons:
+
+| Cause | Example |
+|---|---|
+| **Order flow imbalance** | A large pension fund sells 5,000 HSI futures contracts at market. The futures price drops below fair value for a few seconds. |
+| **Market maker hedging lag** | A market maker quotes HSI futures but hasn't yet repriced MHI futures. Momentary spread between them. |
+| **Currency or settlement friction** | An ETF trading in HKD and its equivalent CNH futures take time to be repriced after an FX move. |
+| **Information asymmetry** | News hits one market faster than another (e.g., CSI300 reacts to China data before HSI). |
+| **Structural constraints** | Some investors can only trade ETFs (not futures). Their buying pressure pushes the ETF above NAV. |
+
+Crucially: **these gaps are temporary**. Markets are competitive and full of arbitrageurs looking for the same opportunities. The arb trade itself is what closes the gap — your selling pressure on the expensive instrument, and buying pressure on the cheap one, forces prices back together.
+
+---
+
+### The Core Arb Trade — Step by Step
+
+Here is the fundamental structure of every index arb trade in this system:
+
+```
+Step 1: IDENTIFY a mispricing
+        → "HSI futures are trading 80 BPS above their fair value"
+
+Step 2: SELL the expensive instrument
+        → Sell HSI futures at the elevated price
+
+Step 3: BUY the equivalent cheap instrument simultaneously
+        → Buy the underlying basket of HSI stocks (or a proxy)
+
+Step 4: WAIT for convergence
+        → At expiry, futures must settle exactly at the cash index level
+        → The gap closes; you pocket the difference
+
+Step 5: UNWIND
+        → The two legs (futures + basket) cancel out; realise the P&L
+```
+
+**The key word is "simultaneously."** If you only do Step 2 (sell futures) without Step 3 (buy the basket), you have a directional bet, not an arb. True arb is market-neutral — you don't care whether the index goes up or down. You only care that the gap closes.
+
+---
+
+### Why Is It Profitable?
+
+Three structural reasons:
+
+**1. Convergence is mathematically guaranteed at expiry**
+
+Index futures must settle at the official index closing value on expiry day. This is not a bet — it is a contractual certainty. If you buy the cash basket and sell futures at a premium, you are locking in the premium as riskless profit, to be realised at expiry.
+
+**2. Intraday convergence happens even faster**
+
+You don't have to wait until expiry. Market makers and other arbitrageurs are constantly watching the same gap. Their activity closes mispricings within seconds to minutes. You can enter and exit within a single trading session.
+
+**3. High frequency = many small edges compound**
+
+Each individual arb trade may only earn 20–100 BPS. But a system that executes hundreds of such trades per day, compounding small consistent edges with disciplined risk management, generates strong risk-adjusted returns. This is why HFT firms dominate index arb — speed matters more than size of edge.
+
+---
+
+### Why Does It Require Speed and Automation?
+
+A human trader watching screens cannot react fast enough:
+
+| What happens | Timescale |
+|---|---|
+| Large order hits HSI futures | ~1 millisecond |
+| Basis deviation appears | ~1–5 milliseconds |
+| Competing arb systems detect and trade | ~1–10 milliseconds |
+| Gap closes | ~10–500 milliseconds |
+
+By the time a human notices the deviation, picks up the phone, and executes both legs, the opportunity is gone. This is why automated systems like this one use:
+
+- **Aeron IPC** — inter-process messaging in nanoseconds via shared memory
+- **SBE (Simple Binary Encoding)** — zero-allocation message parsing
+- **Pre-allocated order buffers** — no garbage collection pauses on the hot path
+- **Co-located servers** — physically close to exchange matching engines
+
+---
+
+### The Risk Side — What Can Go Wrong?
+
+Index arb is often described as "riskless." It is not. The risks are:
+
+| Risk | Description | Mitigation in this system |
+|---|---|---|
+| **Execution risk** | You fill one leg but not the other. You're now directional. | `RiskGateway` checks both sides; `MockExchangeConnector` simulates realistic fills |
+| **Gap risk** | Market crashes between your futures sell and basket buy. Basis widens further before closing. | `MonteCarloPositionSizer` limits lot size to 95% VaR budget |
+| **Model risk** | Your fair value calculation is wrong (wrong dividends, wrong carry rate). You think there's an arb but there isn't. | `FuturesFvCalculator` (arb-gambit) uses OpenGamma Strata for warm-path FV; hot-path uses carry factor inline |
+| **Liquidity risk** | You can't buy/sell the full basket at the prices you need. | `BasketSlicer` breaks large orders into smaller child orders |
+| **Fat-finger risk** | Software bug sends absurdly large order. | `RiskGateway` rejects orders exceeding qty/price limits |
+| **Correlation breakdown** | In pair arb, the historical β relationship breaks (e.g., political event). | Z-score entry threshold; position limits; AtomicLong β is live-updatable |
+
+---
+
+### The Markets in This System
+
+| Market | Exchange | Products traded |
+|---|---|---|
+| **Hong Kong** | HKEX | HSI Futures, MHI Futures, CSOP A50 ETF (2822.HK) |
+| **Taiwan** | TAIFEX / TWSE | TAIEX Futures, 0050.TW ETF, TSMC SSF (2330.TW) |
+| **China** | CSI / SHFE | CSI300 Index (used as pair-arb reference) |
+
+These markets are chosen because:
+- They are deeply correlated (all driven by Greater China economic conditions)
+- They trade in different time zones and currencies, creating regular structural gaps
+- HKEX and TAIFEX have liquid, low-latency futures markets suitable for HFT
+
+---
+
+### What This System Does, In Plain English
+
+```
+1. Receives live market data from HKEX, TAIFEX, and CSI feeds
+2. Calculates the fair value (FV) for each futures/ETF instrument in real time
+3. Compares market prices to FV, computing the basis and annualised basis BPS
+4. Runs 8 strategies simultaneously, each watching for a specific type of mispricing
+5. When a strategy fires, it sends an order through the risk gateway (size & price checks)
+6. If approved, the order goes to the exchange connector for execution
+7. Fill confirmations flow back to the dashboard as P&L
+8. The whole loop — market data in to order out — takes microseconds
+```
+
+---
+
+### Quick Mental Model: The Three Types of Arb in This System
+
+| Type | The bet | Convergence mechanism |
+|---|---|---|
+| **Carry arb** (A1, C1) | Futures price vs. calculated FV | Futures must settle at cash index at expiry |
+| **NAV arb** (B1, B2) | ETF price vs. underlying basket NAV | Authorised participants create/redeem ETF units |
+| **Statistical arb** (D1, C2, E1) | Spread between correlated instruments vs. its historical mean | Markets re-price as information diffuses; mean reversion |
+
+---
+
+*Continue to [Section 2 — Jargon Glossary](#2-index-arb-jargon-glossary) for definitions of all technical terms.*
+
+---
+
+## 2. Index Arb Jargon Glossary
 
 This section defines every technical term used in the strategies. Read this first.
 
@@ -223,7 +375,7 @@ When the same underlying asset (or equivalent) is listed on two different exchan
 
 ---
 
-## 2. Strategy Overview
+## 3. Strategy Overview
 
 | ID | Name | Group | Markets | Signal source | Entry condition |
 |---|---|---|---|---|---|
@@ -552,7 +704,7 @@ In low-vol markets, both A1 and E1 behave similarly. In high-vol markets, E1 sit
 
 ---
 
-## 8. Supporting Analytics
+## 9. Supporting Analytics
 
 These components feed parameters into the strategies. They run on slower ("warm" or "cold") paths and publish results via lock-free `AtomicLong` bridges that strategies read with zero allocation.
 
