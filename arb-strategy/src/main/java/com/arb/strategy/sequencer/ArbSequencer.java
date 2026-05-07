@@ -51,6 +51,9 @@ public final class ArbSequencer implements AutoCloseable {
 
     private volatile boolean running = false;
 
+    /** Monotonically increasing order ID for correlation with execution updates. */
+    private long nextOrderId = 0L;
+
     /** Pre-allocated OrderSink — encodes OrderRequest and publishes to ORDER_CHANNEL. */
     private final OrderSink orderSink;
 
@@ -72,6 +75,7 @@ public final class ArbSequencer implements AutoCloseable {
                     .price(price)
                     .qty(qty)
                     .orderType(orderType)
+                    .orderId(nextOrderId++)
                     .encodedLength() + MessageHeaderEncoder.ENCODED_LENGTH
             );
     }

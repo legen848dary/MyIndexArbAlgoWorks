@@ -45,6 +45,14 @@
             <validValue name="ERROR">2</validValue>
         </enum>
 
+        <enum name="OrderStatus" encodingType="uint8" description="Order execution status">
+            <validValue name="NEW">0</validValue>
+            <validValue name="FILLED">1</validValue>
+            <validValue name="PARTIAL_FILL">2</validValue>
+            <validValue name="REJECTED">3</validValue>
+            <validValue name="CANCELLED">4</validValue>
+        </enum>
+
     </types>
 
     <!--
@@ -66,11 +74,12 @@
         Use OrderType=MARKET for all prototype fills (BasketSlicer assumption).
     -->
     <sbe:message name="OrderRequest" id="2" description="Order request from strategy engine">
-        <field name="symbol"    id="1" type="Symbol12"             description="Instrument symbol"/>
-        <field name="side"      id="2" type="Side"                  description="BUY or SELL"/>
-        <field name="price"     id="3" type="int64"                 description="Price scaled by 10^4 (0 for MARKET orders)"/>
-        <field name="qty"       id="4" type="int64"                 description="Quantity"/>
-        <field name="orderType" id="5" type="OrderType"             description="MARKET or LIMIT"/>
+        <field name="symbol"    id="1" type="Symbol12"   description="Instrument symbol"/>
+        <field name="side"      id="2" type="Side"        description="BUY or SELL"/>
+        <field name="price"     id="3" type="int64"       description="Price scaled by 10^4 (0 for MARKET orders)"/>
+        <field name="qty"       id="4" type="int64"       description="Quantity"/>
+        <field name="orderType" id="5" type="OrderType"   description="MARKET or LIMIT"/>
+        <field name="orderId"   id="6" type="int64"       description="Unique order ID for correlation (monotonic counter)"/>
     </sbe:message>
 
     <!--
@@ -137,6 +146,22 @@
         <field name="basis"              id="5" type="int64"    description="basis = futuresMktPrice - futuresFv scaled by 10^4"/>
         <field name="annualisedBasisBps" id="6" type="int64"    description="Annualised basis in BPS scaled by 10^2 (e.g. 15000 = 150.00 BPS)"/>
         <field name="timestamp"          id="7" type="int64"    description="Epoch nanoseconds"/>
+    </sbe:message>
+
+    <!--
+        Message 8: OrderUpdate
+        Published by arb-execution to ORDER_UPDATE_STREAM (1003).
+        Carries fill or rejection notifications back to the strategy layer.
+    -->
+    <sbe:message name="OrderUpdate" id="8" description="Order execution update from mock exchange">
+        <field name="orderId"    id="1" type="int64"       description="Correlates to OrderRequest.orderId"/>
+        <field name="symbol"     id="2" type="Symbol12"    description="Instrument symbol"/>
+        <field name="side"       id="3" type="Side"        description="BUY or SELL"/>
+        <field name="fillPrice"  id="4" type="int64"       description="Fill price scaled by 10^4 (0 if rejected)"/>
+        <field name="fillQty"    id="5" type="int64"       description="Filled quantity (0 if rejected)"/>
+        <field name="status"     id="6" type="OrderStatus" description="FILLED / PARTIAL_FILL / REJECTED / CANCELLED"/>
+        <field name="rejectCode" id="7" type="uint8"       description="Risk rejection code: 0=none 1=fat_finger 2=position_limit"/>
+        <field name="timestamp"  id="8" type="int64"       description="Epoch nanoseconds"/>
     </sbe:message>
 
 </sbe:messageSchema>
