@@ -11,4 +11,9 @@ dependencies {
     implementation project(':arb-common')
     implementation "io.aeron:aeron-client:${aeronVersion}"
     implementation "org.agrona:agrona:${agronaVersion}"
+
+    testImplementation project(':arb-common')
+    testImplementation "io.aeron:aeron-client:${aeronVersion}"
+    testImplementation "io.aeron:aeron-driver:${aeronVersion}"
+    testImplementation "org.agrona:agrona:${agronaVersion}"
 }
