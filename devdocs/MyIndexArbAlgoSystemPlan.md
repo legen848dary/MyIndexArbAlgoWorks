@@ -269,17 +269,180 @@ Real index-arb requires these signals on every tick:
 ---
 
 ## Phase 3: The Alpha (Strategy Implementations)
-**Timebox:** 6 Hours
+
+**Goal:** Implement the full strategy catalogue — 8 strategies spanning index arb, ETF arb,
+Single-Stock Futures (SSF), cross-border pair trading, and vol-informed arb.
+Each strategy is a plug-in implementing `Strategy`; the `ArbSequencer` dispatches all market events.
+**Timebox:** 10 Hours
+
+---
+
+### Strategy Catalogue
+
+#### Group A — Index Futures Arb (pure cost-of-carry, linear arb)
+
+**A1. `HkexBasisArb`** — HSI Futures vs Synthetic Basket
+*Signal source: `FvUpdate` (FV_CHANNEL stream 1005)*
+
+The original index-arb strategy. Reads `annualisedBasisBps` from `FvUpdate`.
+- **Entry:** basis > `entryThresholdBps` → sell futures / buy basket (or reverse).
+- **Exit:** basis < `exitThresholdBps` (mean reversion target).
+- **Key inputs:** `FvUpdate.futuresFv`, `FvUpdate.annualisedBasisBps`, `ReferenceDataStore` (lot sizes).
+
+**A2. `MhiHsiBasisArb`** — Mini-HSI (MHI) vs Full HSI Contract
+*Intraday cross-contract spread on the same underlying.*
+
+Mini-HSI (MHI) and full HSI are legally fungible at 1:5 ratio. Price divergence > 1 tick
+(rare but occurs at open/close) creates a near-riskless spread.
+- **Entry:** `(hsiPrice - 5 × mhiPrice) / hsiPrice × 10_000` > 2 BPS.
+- **Both legs on HKEX** → no FX risk, same clearing. Typically sub-5µs window.
+
+---
+
+#### Group B — ETF Creation/Redemption Arb
+
+**B1. `TwseEtfArb`** — YUANTA 50 ETF (0050.TW) vs TAIEX Basket
+*Signal source: `NavCalculator` (hot path) + `FvUpdate`*
+
+Classic ETF arb: if ETF market price diverges from intraday NAV beyond the creation/redemption
+round-trip cost (≈ 20 BPS for Taiwan), trade the spread and redeem/create.
+- **Long ETF / Short basket** when ETF trades at discount to NAV.
+- **Short ETF / Long basket** when ETF trades at premium.
+- Uses `EtfDefinition` pre-loaded from `ReferenceDataStore`.
+
+**B2. `CrossBorderEtfArb`** — CSOP A50 ETF (2822.HK) vs SGX FTSE China A50 Futures
+*Cross-currency: HKD ETF vs USD futures — requires FX rate bridge.*
+
+CSOP A50 ETF tracks the FTSE China A50 index. SGX A50 futures (USD-denominated) are the
+liquid offshore hedge. Basis between ETF NAV (CNH-adjusted) and futures fair value creates
+arb opportunities around:
+- MSCI rebalancing / passive fund flows.
+- Shanghai-HK Stock Connect quota events.
+- **FX bridge:** `usdCnhRate` and `hkdUsdRate` read from warm-path `AtomicLong` fields (set
+  by a periodic FX rate feed, same `setRelease/getAcquire` pattern).
+
+---
+
+#### Group C — Single Stock Futures (SSF)
+
+**C1. `SsfBasisArb`** — TSMC SSF vs TSMC Spot
+*Classic SSF carry arb: SSF price vs spot + cost-of-carry.*
+
+TSMC has SSFs listed on both TWSE and HKEX (H-share equivalent). Entry when:
+`(ssfPrice - spotPrice) / spotPrice × 10_000 > riskFreeRateBps × daysToExpiry / 365 + 15 BPS buffer`
+
+**C2. `SsfCalendarSpreadArb`** — TSMC SSF Near-Month vs Far-Month
+*Pure convergence trade: near/far SSF spread mean-reverts to carry differential at expiry.*
+
+Entry signal: observed spread deviates > `2σ` from theoretical carry-adjusted spread.
+- `σ` computed by warm-path `SpreadVolEstimator` (rolling 20-day std dev of daily spread changes).
+- Written to `AtomicLong spreadSigmaBps.setRelease()` → hot path reads via `getAcquire()`.
+- Zero-GC entry condition: `abs(observedSpread - theoreticalSpread) > 2 × spreadSigma`.
+
+---
+
+#### Group D — Cross-Market Pair Trading (cointegration-based)
+
+**D1. `HkCnIndexPairArb`** — HSI Futures vs CSI300 Futures
+*Beta-adjusted mean reversion. Both indices driven by China macro.*
+
+Uses a rolling hedge ratio `β` (updated warm-path, ~5-min intervals).
+- **Hot path reads:** `betaScaled4.getAcquire()`, `zScoreThreshBps.getAcquire()`.
+- **Entry:** `zScore = (spread - spreadMean) / spreadSigma > entryThresh` → short the rich leg, long the cheap.
+- **Spread:** `HSI_futures_price - β × CSI300_futures_price` (both in CNH equivalent).
+- **FX adjustment:** CNH/HKD rate from warm-path atomic.
+- **Risk:** regime-break risk (correlation collapse). Hard stop: `|spread| > 3σ`.
+
+---
+
+#### Group E — Vol-Informed Arb (Black-Scholes + IV surface)
+
+**E1. `VolSkewBasisArb`** — Basis Arb with IV-Adjusted Entry Threshold
+
+The classic cost-of-carry basis does not account for the market's forward volatility expectations.
+When `impliedVolBps` (from `VolSurfaceCalibrator`) diverges significantly from `realisedVolBps`
+(rolling 20-day, computed warm-path), it signals the market is pricing in extraordinary risk —
+widen the arb entry threshold to avoid being caught by a gap move.
+
+**Mechanism (all values are warm-path `AtomicLong` bridges):**
+- `impliedVolBps.getAcquire()` — current ATM IV (from `VolSurfaceCalibrator`).
+- `realisedVolBps.getAcquire()` — rolling realised vol.
+- `adaptiveThreshBps = baseThreshBps + max(0, impliedVolBps - realisedVolBps) / SCALE`
+- Strategy only enters when `annualisedBasisBps > adaptiveThreshBps`.
+
+This is the bridge between the warm-path analytics (`arb-gambit`) and the hot-path strategy
+engine. Black-Scholes is **never invoked on the hot path** — only the pre-computed `impliedVolBps`
+long value is read.
+
+---
+
+#### Monte Carlo Position Sizing (cold-path, feeds all strategies)
+
+**`MonteCarloPositionSizer`** (cold path, `com.arb.gambit.model`)
+
+Uses finmath-lib Monte Carlo (`EulerSchemeFromProcessModel`) to simulate 10,000 paths of the
+spot index, computing `95%/99% VaR` for a given basket position size. Runs on a scheduled
+executor (e.g., every 5 minutes or on demand before market open).
+
+Results published to `AtomicLong` fields:
+- `maxLotsBps95.setRelease(...)` — max basket lots before breaching 95% VaR limit.
+- All hot-path strategies read `maxLots.getAcquire()` before sizing any order.
+
+This ensures position limits are dynamically calibrated to realized market vol rather than
+static config — without any GC pressure on the hot path.
+
+---
+
+### Configuration
+
+Each strategy is independently enabled/disabled via `config/strategies.properties`:
+```properties
+strategy.HkexBasisArb.enabled=true
+strategy.MhiHsiBasisArb.enabled=false
+strategy.TwseEtfArb.enabled=true
+strategy.CrossBorderEtfArb.enabled=false
+strategy.SsfBasisArb.enabled=true
+strategy.SsfCalendarSpreadArb.enabled=false
+strategy.HkCnIndexPairArb.enabled=false
+strategy.VolSkewBasisArb.enabled=true
+```
+
+The `ArbSequencer` reads this at startup and only wires enabled strategies into the dispatch loop.
+
+---
 
 ### Tasks
-1.  **Strategy A:** `HkexBasisArb` (HSI Future vs Basket).
-2.  **Strategy B:** `TwseEtfArb` (ETF vs Basket - Creation/Redemption).
-3.  **Strategy C:** `SsfBasisArb` (TSMC SSF vs Stock).
-4.  **Strategy D:** `CrossBorderEtfArb` (HK vs CN ETF).
-    *   *Configuration:* Allow enabling/disabling strategies via a config file.
+
+1.  **Phase 3 infrastructure:**
+    *   `StrategyRegistry`: loads and enables strategies from `strategies.properties`.
+    *   `SpreadVolEstimator`: warm-path rolling σ for spread strategies (C2, D1).
+    *   `MonteCarloPositionSizer`: cold-path VaR sizing; publishes `maxLotsBps95`.
+    *   Update `ArbSequencer` to dispatch `FvUpdate` (templateId=7) to strategies.
+
+2.  **Implement strategies (all in `arb-strategy`, `com.arb.strategy.impl`):**
+    *   Group A: `HkexBasisArb`, `MhiHsiBasisArb`
+    *   Group B: `TwseEtfArb`, `CrossBorderEtfArb`
+    *   Group C: `SsfBasisArb`, `SsfCalendarSpreadArb`
+    *   Group D: `HkCnIndexPairArb`
+    *   Group E: `VolSkewBasisArb`
+
+3.  **Unit tests (`arb-strategy`):**
+    *   Each strategy: signal-fires correctly at/above threshold; no signal below threshold.
+    *   `HkCnIndexPairArb`: Z-score entry/exit correctness.
+    *   `VolSkewBasisArb`: adaptive threshold widens with IV > realised vol.
+    *   `MonteCarloPositionSizer`: VaR result is a positive integer (sanity check).
+
+4.  **BDD Feature (`arb-strategy`):**
+    *   `strategies.feature`: 8 scenarios (one per strategy), each verifying the
+        entry signal fires under synthetic `FvUpdate` + `MarketDataTick` inputs.
 
 **Definition of Done:**
-*   [ ] All 4 strategies implemented and unit tested.
+*   [ ] All 8 strategies compile and are dispatchable via `ArbSequencer`.
+*   [ ] Each strategy has at least 2 unit tests (signal fires / signal suppressed).
+*   [ ] `VolSkewBasisArb` reads only pre-computed `AtomicLong` values on hot path (no B-S invocation).
+*   [ ] `MonteCarloPositionSizer` runs without error and writes to `AtomicLong`.
+*   [ ] `strategies.feature` BDD (8 scenarios) passes.
+*   [ ] All prior tests still pass (25 tests from Phases 0–2b).
 
 ---
 
