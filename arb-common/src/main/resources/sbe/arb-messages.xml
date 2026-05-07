@@ -20,6 +20,7 @@
         <!-- Fixed-length character array types (must be named types for array codegen) -->
         <type name="Symbol12"   primitiveType="char" length="12"  description="12-char instrument symbol"/>
         <type name="Message128" primitiveType="char" length="128" description="128-char free-text message"/>
+        <type name="Currency3"  primitiveType="char" length="3"   description="ISO 4217 3-char currency code (e.g. HKD, TWD, CNY)"/>
 
         <!-- Enumerations -->
         <enum name="Exchange" encodingType="uint8" description="Source exchange identifier">
@@ -80,6 +81,62 @@
         <field name="eventType"  id="1" type="EventType"           description="INFO / WARNING / ERROR"/>
         <field name="timestamp"  id="2" type="int64"               description="Epoch nanoseconds"/>
         <field name="message"    id="3" type="Message128"          description="Human-readable message"/>
+    </sbe:message>
+
+    <!--
+        Message 4: QuoteTick
+        Published by arb-market-data to MARKET_DATA_CHANNEL.
+        iep = Indicative Equilibrium Price (auction crossing price); all prices fixed-point 10^4.
+    -->
+    <sbe:message name="QuoteTick" id="4" description="Quote data: IEP, best bid and ask">
+        <field name="symbol"    id="1" type="Symbol12" description="Instrument symbol"/>
+        <field name="exchange"  id="2" type="Exchange" description="Source exchange"/>
+        <field name="iep"       id="3" type="int64"    description="Indicative Equilibrium Price scaled by 10^4"/>
+        <field name="bidPrice"  id="4" type="int64"    description="Best bid price scaled by 10^4"/>
+        <field name="askPrice"  id="5" type="int64"    description="Best ask price scaled by 10^4"/>
+        <field name="timestamp" id="6" type="int64"    description="Epoch nanoseconds"/>
+    </sbe:message>
+
+    <!--
+        Message 5: MarketVolumeTick
+        Published by arb-market-data to MARKET_DATA_CHANNEL.
+        iev = Indicative Exchange Volume (number of shares matched at IEP during auction).
+    -->
+    <sbe:message name="MarketVolumeTick" id="5" description="Market volume: IEV and cumulative daily volume">
+        <field name="symbol"      id="1" type="Symbol12" description="Instrument symbol"/>
+        <field name="exchange"    id="2" type="Exchange" description="Source exchange"/>
+        <field name="iev"         id="3" type="int64"    description="Indicative Exchange Volume (share count)"/>
+        <field name="dailyVolume" id="4" type="int64"    description="Cumulative daily traded volume"/>
+        <field name="timestamp"   id="5" type="int64"    description="Epoch nanoseconds"/>
+    </sbe:message>
+
+    <!--
+        Message 6: ReferenceDataRecord
+        Published by arb-market-data to MARKET_DATA_CHANNEL at startup (static, cold path).
+        tickSize is fixed-point 10^4. constituentWeight is fixed-point 10^6.
+    -->
+    <sbe:message name="ReferenceDataRecord" id="6" description="Static reference data for an instrument">
+        <field name="symbol"            id="1" type="Symbol12"  description="Instrument symbol"/>
+        <field name="exchange"          id="2" type="Exchange"  description="Source exchange"/>
+        <field name="lotSize"           id="3" type="int64"     description="Minimum trading lot size (share count)"/>
+        <field name="tickSize"          id="4" type="int64"     description="Minimum price increment scaled by 10^4"/>
+        <field name="currency"          id="5" type="Currency3" description="ISO 4217 settlement currency"/>
+        <field name="constituentWeight" id="6" type="int64"     description="Index constituent weight scaled by 10^6"/>
+    </sbe:message>
+
+    <!--
+        Message 7: FvUpdate
+        Published by arb-gambit FvEngine to FV_CHANNEL (stream 1005).
+        All price fields fixed-point 10^4. annualisedBasisBps fixed-point 10^2 (bps × 100).
+    -->
+    <sbe:message name="FvUpdate" id="7" description="Fair value update from FvEngine">
+        <field name="symbol"             id="1" type="Symbol12" description="Instrument symbol"/>
+        <field name="exchange"           id="2" type="Exchange" description="Source exchange"/>
+        <field name="navPerUnit"         id="3" type="int64"    description="ETF NAV per creation unit scaled by 10^4 (0 if not an ETF)"/>
+        <field name="futuresFv"          id="4" type="int64"    description="Futures fair value scaled by 10^4"/>
+        <field name="basis"              id="5" type="int64"    description="basis = futuresMktPrice - futuresFv scaled by 10^4"/>
+        <field name="annualisedBasisBps" id="6" type="int64"    description="Annualised basis in BPS scaled by 10^2 (e.g. 15000 = 150.00 BPS)"/>
+        <field name="timestamp"          id="7" type="int64"    description="Epoch nanoseconds"/>
     </sbe:message>
 
 </sbe:messageSchema>

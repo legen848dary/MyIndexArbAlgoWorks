@@ -12,6 +12,7 @@ public final class Channels {
     public static final int ORDER_STREAM         = 1002;
     public static final int ORDER_UPDATE_STREAM  = 1003;
     public static final int CONTROL_STREAM       = 1004;
+    public static final int FV_STREAM            = 1005;
 
     private Channels() {}
 }

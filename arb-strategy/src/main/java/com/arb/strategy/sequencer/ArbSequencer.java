@@ -38,11 +38,14 @@ public final class ArbSequencer implements AutoCloseable {
     private final Strategy        strategy;
 
     // ── Pre-allocated SBE flyweights (zero-GC) ───────────────────────────────
-    private final MessageHeaderDecoder  headerDecoder  = new MessageHeaderDecoder();
-    private final MarketDataTickDecoder tickDecoder    = new MarketDataTickDecoder();
-    private final MessageHeaderEncoder  headerEncoder  = new MessageHeaderEncoder();
-    private final OrderRequestEncoder   orderEncoder   = new OrderRequestEncoder();
-    private final UnsafeBuffer          txBuffer       =
+    private final MessageHeaderDecoder       headerDecoder  = new MessageHeaderDecoder();
+    private final MarketDataTickDecoder      tickDecoder    = new MarketDataTickDecoder();
+    private final QuoteTickDecoder           quoteDecoder   = new QuoteTickDecoder();
+    private final MarketVolumeTickDecoder    volDecoder     = new MarketVolumeTickDecoder();
+    private final ReferenceDataRecordDecoder refDataDecoder = new ReferenceDataRecordDecoder();
+    private final MessageHeaderEncoder       headerEncoder  = new MessageHeaderEncoder();
+    private final OrderRequestEncoder        orderEncoder   = new OrderRequestEncoder();
+    private final UnsafeBuffer               txBuffer       =
         new UnsafeBuffer(ByteBuffer.allocateDirect(256));
 
     private volatile boolean running = false;
@@ -90,6 +93,7 @@ public final class ArbSequencer implements AutoCloseable {
     /**
      * Fragment handler — called by Aeron per decoded frame.
      * All paths are zero-allocation: decoders are flyweights; orderSink is a pre-allocated field.
+     * Dispatches by SBE templateId to the appropriate Strategy method.
      */
     private void onFragment(
         final DirectBuffer buffer,
@@ -98,15 +102,30 @@ public final class ArbSequencer implements AutoCloseable {
         final Header       header)
     {
         headerDecoder.wrap(buffer, offset);
+        final int templateId   = headerDecoder.templateId();
+        final int msgOffset    = offset + MessageHeaderDecoder.ENCODED_LENGTH;
+        final int blockLength  = headerDecoder.blockLength();
+        final int version      = headerDecoder.version();
 
-        if (headerDecoder.templateId() == MarketDataTickDecoder.TEMPLATE_ID) {
-            tickDecoder.wrap(
-                buffer,
-                offset + MessageHeaderDecoder.ENCODED_LENGTH,
-                headerDecoder.blockLength(),
-                headerDecoder.version()
-            );
-            strategy.onMarketData(tickDecoder, orderSink);
+        switch (templateId) {
+            case MarketDataTickDecoder.TEMPLATE_ID:
+                tickDecoder.wrap(buffer, msgOffset, blockLength, version);
+                strategy.onMarketData(tickDecoder, orderSink);
+                break;
+            case QuoteTickDecoder.TEMPLATE_ID:
+                quoteDecoder.wrap(buffer, msgOffset, blockLength, version);
+                strategy.onQuote(quoteDecoder, orderSink);
+                break;
+            case MarketVolumeTickDecoder.TEMPLATE_ID:
+                volDecoder.wrap(buffer, msgOffset, blockLength, version);
+                strategy.onMarketVolume(volDecoder, orderSink);
+                break;
+            case ReferenceDataRecordDecoder.TEMPLATE_ID:
+                refDataDecoder.wrap(buffer, msgOffset, blockLength, version);
+                strategy.onReferenceData(refDataDecoder);
+                break;
+            default:
+                break; // unknown templateId — skip silently
         }
     }
 
