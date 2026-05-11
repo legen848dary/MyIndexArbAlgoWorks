@@ -55,9 +55,9 @@ export interface OrderRequestMsg {
 export interface SimulationStatusMsg {
   type: 'SIMULATION_STATUS'
   running: boolean
-  profile: 'HKEX_BASIS_ARB' | 'TWSE_ETF_ARB' | 'SSF_CALENDAR' | 'HK_CN_PAIR'
+  profile: string   // e.g. 'HKEX_BASIS_ARB' | '' on STOPPED
+  phase: string     // cycle phases or lifecycle: 'STEADY'|'ARB_RAMP'|'ARB_WINDOW'|'CONVERGENCE'|'STARTING'|'STOPPED'|'STARTED'|'PROFILE_SET'
   tickCount: number
-  phase: 'STEADY' | 'ARB_RAMP' | 'ARB_WINDOW' | 'CONVERGENCE'
   ts: number
 }
 

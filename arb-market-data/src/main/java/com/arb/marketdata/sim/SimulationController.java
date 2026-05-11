@@ -43,6 +43,12 @@ public final class SimulationController implements AutoCloseable {
         System.out.println("[sim-ctrl] Subscribed to CONTROL_STREAM (1004)");
     }
 
+    /** Start the simulation using the simulator's current active profile. Call this instead
+     *  of manually starting the sim thread so the controller can track and stop it later. */
+    public void autoStart() {
+        startSimulation(simulator.getActiveProfile());
+    }
+
     /** Poll for control commands (call from the main loop). */
     public void poll() {
         controlSub.poll(this::onFragment);

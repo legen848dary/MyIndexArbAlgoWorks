@@ -69,7 +69,7 @@ export default function App() {
         <div className="flex gap-4">
           {/* Left: main content area */}
           <div className="flex-1 min-w-0">
-            {activeTab === 'monitor' && <LiveMonitor />}
+            {activeTab === 'monitor' && <LiveMonitor onViewAllTrades={() => setActiveTab('trades')} />}
             {activeTab === 'trades'  && <TradesPage />}
             {activeTab === 'orders'  && <OrderBook />}
             {activeTab === 'health'  && <SystemHealth />}

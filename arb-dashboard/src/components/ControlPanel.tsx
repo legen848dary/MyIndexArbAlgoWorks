@@ -122,14 +122,14 @@ export function ControlPanel({ send }: ControlPanelProps) {
           ))}
         </div>
 
-        {/* Emergency Halt */}
+        {/* Kill Switch */}
         <Button
           variant="destructive"
           className="w-full gap-2"
           onClick={handleHalt}
         >
           <AlertTriangle size={16} />
-          Emergency Halt
+          Kill Switch
         </Button>
       </CardContent>
     </Card>

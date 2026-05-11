@@ -55,7 +55,8 @@ public final class JsonMessages {
                ",\"qty\":" + msg.qty() +
                ",\"orderType\":\"" + msg.orderType().name() +
                "\",\"basketId\":" + msg.basketId() +
-               ",\"legIndex\":" + msg.legIndex() + "}";
+               ",\"legIndex\":" + msg.legIndex() +
+               ",\"ts\":" + System.currentTimeMillis() + "}";
     }
 
     /** Serialise an OrderUpdate decode result to JSON. */
@@ -76,7 +77,9 @@ public final class JsonMessages {
 
     /** Serialise a simulation status update to JSON. */
     public static String simulationStatus(final String profile, final String phase, final long tickCount) {
-        return "{\"type\":\"SIMULATION_STATUS\",\"profile\":\"" + profile +
+        final boolean running = !"STOPPED".equals(phase);
+        return "{\"type\":\"SIMULATION_STATUS\",\"running\":" + running +
+               ",\"profile\":\"" + profile +
                "\",\"phase\":\"" + phase +
                "\",\"tickCount\":" + tickCount +
                ",\"ts\":" + System.currentTimeMillis() + "}";

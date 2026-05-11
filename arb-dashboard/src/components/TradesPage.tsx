@@ -38,7 +38,7 @@ function LegRow({ leg, legLabel }: { leg: LegInfo; legLabel: string }) {
 }
 
 function TradeCard({ trade }: { trade: ArbTrade }) {
-  const age = ((Date.now() - trade.timestamp / 1_000_000) / 1000).toFixed(1)
+  const age = ((Date.now() - trade.timestamp) / 1000).toFixed(1)
   const statusClass = STATUS_COLORS[trade.status] ?? 'bg-slate-500/20 text-slate-400'
 
   return (

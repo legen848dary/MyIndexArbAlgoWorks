@@ -115,12 +115,12 @@ export const useStore = create<AppState>()((set) => ({
   simProfile: 'HKEX_BASIS_ARB',
   simPhase: 'STEADY',
   simTickCount: 0,
-  handleSimulationStatus: (msg) => set({
-    simRunning: msg.running,
-    simProfile: msg.profile,
-    simPhase: msg.phase,
+  handleSimulationStatus: (msg) => set((s) => ({
+    simRunning:   msg.running ?? msg.phase !== 'STOPPED',
+    simProfile:   msg.profile || s.simProfile,
+    simPhase:     msg.phase,
     simTickCount: msg.tickCount,
-  }),
+  })),
 
   darkMode: true,
   toggleDarkMode: () =>

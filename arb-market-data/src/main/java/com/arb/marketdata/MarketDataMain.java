@@ -68,9 +68,9 @@ public final class MarketDataMain {
             mediaDriver.close();
         }));
 
-        // 8. Auto-start simulation with default profile
+        // 8. Auto-start simulation via controller (so it tracks the thread for Start/Stop commands)
         System.out.println("[market-data] Auto-starting simulation with profile HKEX_BASIS_ARB...");
-        Thread.ofPlatform().name("sim-thread").start(simulator);
+        controller.autoStart();
 
         // 9. Main loop: poll control commands every 50ms
         System.out.println("[market-data] Control loop running — waiting for commands on CONTROL_STREAM...");

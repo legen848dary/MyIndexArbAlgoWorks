@@ -42,6 +42,10 @@ public final class WebGatewayVerticle extends AbstractVerticle {
     // WebSocket client registry (thread-safe — Vert.x event bus can be multi-threaded)
     private final Set<ServerWebSocket> clients = new CopyOnWriteArraySet<>();
 
+    // Simulation state — updated when commands pass through; used to initialise new WS clients
+    private volatile boolean simRunning = false;
+    private volatile String  simProfile  = "HKEX_BASIS_ARB";
+
     // Aeron lifecycle
     private MediaDriver           mediaDriver;
     private Aeron                 aeron;
@@ -92,6 +96,9 @@ public final class WebGatewayVerticle extends AbstractVerticle {
                 return;
             }
             clients.add(ws);
+            // Send current sim state so new clients see the right badge immediately
+            ws.writeTextMessage(JsonMessages.simulationStatus(
+                simProfile, simRunning ? "STARTED" : "STOPPED", 0));
             ws.textMessageHandler(this::handleClientCommand);
             ws.closeHandler(v -> clients.remove(ws));
             ws.exceptionHandler(e -> clients.remove(ws));
@@ -182,13 +189,15 @@ public final class WebGatewayVerticle extends AbstractVerticle {
         controlPublisher.sendCommand(cmd);
         // Echo simulation lifecycle commands back to all WebSocket clients as SIMULATION_STATUS
         if (cmd.startsWith("START_SIMULATION:")) {
-            final String profile = cmd.substring("START_SIMULATION:".length()).trim();
-            broadcast(JsonMessages.simulationStatus(profile, "STARTING", 0));
+            simProfile = cmd.substring("START_SIMULATION:".length()).trim();
+            simRunning = true;
+            broadcast(JsonMessages.simulationStatus(simProfile, "STARTING", 0));
         } else if (cmd.equals("STOP_SIMULATION")) {
-            broadcast(JsonMessages.simulationStatus("", "STOPPED", 0));
+            simRunning = false;
+            broadcast(JsonMessages.simulationStatus(simProfile, "STOPPED", 0));
         } else if (cmd.startsWith("SET_PROFILE:")) {
-            final String profile = cmd.substring("SET_PROFILE:".length()).trim();
-            broadcast(JsonMessages.simulationStatus(profile, "PROFILE_SET", 0));
+            simProfile = cmd.substring("SET_PROFILE:".length()).trim();
+            broadcast(JsonMessages.simulationStatus(simProfile, "PROFILE_SET", 0));
         }
     }
 }
