@@ -37,9 +37,17 @@ public final class ExecutionMain {
             orderUpdatePub, MIN_LATENCY_NS, MAX_LATENCY_NS);
         final RiskGateway            riskGateway = new RiskGateway(riskConfig, positions, connector);
 
+        final AeronPublisher latencyPub = new AeronPublisher(
+            aeron.addPublication(Channels.CHANNEL, Channels.LATENCY_STREAM));
+        final com.arb.common.metrics.LatencyPublisher latencyPublisher =
+            new com.arb.common.metrics.LatencyPublisher(latencyPub);
+        latencyPublisher.register("RISK_CHK", riskGateway.riskCheckLatencyRecorder());
+        latencyPublisher.start(5);
+
         // 4. Shutdown hook
         Runtime.getRuntime().addShutdownHook(Thread.ofPlatform().name("shutdown").unstarted(() -> {
             System.out.println("[execution] Shutting down...");
+            latencyPublisher.close();
             connector.close();
             aeron.close();
         }));

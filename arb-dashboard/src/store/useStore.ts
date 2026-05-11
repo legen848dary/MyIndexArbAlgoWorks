@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { MarketDataMsg, FvUpdateMsg, OrderUpdateMsg, SystemEventMsg, SimulationStatusMsg } from '../types/messages'
+import type { MarketDataMsg, FvUpdateMsg, OrderUpdateMsg, SystemEventMsg, SimulationStatusMsg, LatencyStatsMsg } from '../types/messages'
 
 export interface PricePoint {
   ts: number
@@ -49,6 +49,10 @@ interface AppState {
   simPhase: string
   simTickCount: number
   handleSimulationStatus: (msg: SimulationStatusMsg) => void
+
+  // Latency stats (keyed by category: "SIGNAL", "RISK_CHK")
+  latencyStats: Record<string, LatencyStatsMsg>
+  handleLatencyStats: (msg: LatencyStatsMsg) => void
 
   // Dark mode
   darkMode: boolean
@@ -121,6 +125,10 @@ export const useStore = create<AppState>()((set) => ({
     simPhase:     msg.phase,
     simTickCount: msg.tickCount,
   })),
+
+  latencyStats: {},
+  handleLatencyStats: (msg) =>
+    set((s) => ({ latencyStats: { ...s.latencyStats, [msg.category]: msg } })),
 
   darkMode: true,
   toggleDarkMode: () =>

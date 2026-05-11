@@ -42,6 +42,8 @@ public final class RiskGateway {
     // Tracks last known prices per symbol for fat-finger price check
     private final Object2LongHashMap<String> lastPrices;
 
+    private final com.arb.common.metrics.LatencyRecorder riskCheckLatency = new com.arb.common.metrics.LatencyRecorder();
+
     public RiskGateway(final RiskConfig config,
                        final PositionBook positions,
                        final MockExchangeConnector connector) {
@@ -57,6 +59,7 @@ public final class RiskGateway {
     public void onFragment(final DirectBuffer buffer, final int offset, final int length, final Header header) {
         headerDecoder.wrap(buffer, offset);
         if (headerDecoder.templateId() != OrderRequestDecoder.TEMPLATE_ID) return;
+        final long t0 = System.nanoTime();
 
         orderDecoder.wrap(buffer,
             offset + MessageHeaderDecoder.ENCODED_LENGTH,
@@ -78,6 +81,7 @@ public final class RiskGateway {
         // Check 1: fat-finger quantity
         if (qty > config.maxQtyPerOrderLots) {
             connector.reject(orderId, symbol, side, REJECT_FAT_FINGER_QTY, basketId, legIndex);
+            riskCheckLatency.record(System.nanoTime() - t0);
             return;
         }
 
@@ -88,6 +92,7 @@ public final class RiskGateway {
                 final long devBps100 = Math.abs(price - lastPrice) * 10_000L * 100L / lastPrice;
                 if (devBps100 > config.maxPriceDeviationBps100) {
                     connector.reject(orderId, symbol, side, REJECT_FAT_FINGER_PRICE, basketId, legIndex);
+                    riskCheckLatency.record(System.nanoTime() - t0);
                     return;
                 }
             }
@@ -97,6 +102,7 @@ public final class RiskGateway {
         final long positionDelta = side == Side.BUY ? qty : -qty;
         if (!positions.isWithinLimit(symbol, positionDelta, config.maxNetPositionLots)) {
             connector.reject(orderId, symbol, side, REJECT_POSITION_LIMIT, basketId, legIndex);
+            riskCheckLatency.record(System.nanoTime() - t0);
             return;
         }
 
@@ -104,6 +110,7 @@ public final class RiskGateway {
         positions.applyDelta(symbol, positionDelta);
         lastPrices.put(symbol, price);
         connector.fill(orderId, symbol, side, price, qty, basketId, legIndex);
+        riskCheckLatency.record(System.nanoTime() - t0);
     }
 
     /**
@@ -113,6 +120,8 @@ public final class RiskGateway {
     public void updateLastPrice(final String symbol, final long priceScaled4) {
         lastPrices.put(symbol, priceScaled4);
     }
+
+    public com.arb.common.metrics.LatencyRecorder riskCheckLatencyRecorder() { return riskCheckLatency; }
 
     /**
      * Start a blocking event loop subscribing to ORDER_STREAM.

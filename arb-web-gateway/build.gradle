@@ -16,6 +16,7 @@ dependencies {
     implementation "org.agrona:agrona:${agronaVersion}"
     implementation "io.vertx:vertx-core:${vertxVersion}"
     implementation "io.vertx:vertx-web:${vertxVersion}"
+    implementation 'com.h2database:h2:2.2.224'
 
     testImplementation project(':arb-common')
     testImplementation "io.aeron:aeron-client:${aeronVersion}"

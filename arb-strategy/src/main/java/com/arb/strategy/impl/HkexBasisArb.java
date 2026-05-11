@@ -40,6 +40,8 @@ public final class HkexBasisArb implements Strategy {
     private long lastSignalNs = 0L;
     private static final long COOLDOWN_NS = 25_000_000_000L;
 
+    private final com.arb.common.metrics.LatencyRecorder signalLatency = new com.arb.common.metrics.LatencyRecorder();
+
     public HkexBasisArb(final long entryThreshBps100,
                         final long exitThreshBps100,
                         final long lotSize,
@@ -56,6 +58,8 @@ public final class HkexBasisArb implements Strategy {
             System.arraycopy(sym, 0, constituentSymBytes[i], 0, Math.min(sym.length, SYM_LEN));
         }
     }
+
+    public com.arb.common.metrics.LatencyRecorder signalLatencyRecorder() { return signalLatency; }
 
     /**
      * Track constituent prices for Leg 2 lot-size calculation.
@@ -76,6 +80,7 @@ public final class HkexBasisArb implements Strategy {
      */
     @Override
     public void onFvUpdate(final FvUpdateDecoder fv, final OrderSink orders) {
+        final long t0 = System.nanoTime();
         final long bps = fv.annualisedBasisBps();
 
         fv.getSymbol(symBuf, 0);
@@ -117,6 +122,7 @@ public final class HkexBasisArb implements Strategy {
 
         System.out.printf("[ARB BASKET] basketId=%d: %d constituent orders submitted. Awaiting fills...%n",
             basketId, legTwoCount);
+        signalLatency.record(System.nanoTime() - t0);
     }
 
     @Override

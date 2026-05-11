@@ -39,6 +39,10 @@ public final class StrategyMain {
             aeron.addSubscription(Channels.CHANNEL, Channels.CONTROL_STREAM));
         final AeronPublisher orderPublisher = new AeronPublisher(
             aeron.addPublication(Channels.CHANNEL, Channels.ORDER_STREAM));
+        final AeronPublisher latencyPub = new AeronPublisher(
+            aeron.addPublication(Channels.CHANNEL, Channels.LATENCY_STREAM));
+        final com.arb.common.metrics.LatencyPublisher latencyPublisher =
+            new com.arb.common.metrics.LatencyPublisher(latencyPub);
 
         // 3. Load strategy registry — all enabled strategies run in parallel
         final StrategyRegistry registry = new StrategyRegistry("config/strategies.properties");
@@ -67,10 +71,19 @@ public final class StrategyMain {
             }
         });
 
+        // Register latency recorders for enabled strategies
+        for (final Strategy s : strategies) {
+            if (s instanceof com.arb.strategy.impl.HkexBasisArb hkex) {
+                latencyPublisher.register("SIGNAL\0\0", hkex.signalLatencyRecorder());
+            }
+        }
+        latencyPublisher.start(5);
+
         // 6. Shutdown hook
         Runtime.getRuntime().addShutdownHook(Thread.ofPlatform().name("shutdown").unstarted(() -> {
             System.out.println("[strategy] Shutting down...");
             sequencer.stop();
+            latencyPublisher.close();
             aeron.close();
         }));
 

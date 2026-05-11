@@ -3,6 +3,8 @@ package com.arb.gateway;
 import com.arb.common.Channels;
 import com.arb.common.aeron.AeronPublisher;
 import com.arb.common.aeron.AeronSubscriber;
+import com.arb.gateway.persistence.TradeRepository;
+import com.arb.gateway.persistence.TradeRepositoryFactory;
 import com.arb.sbe.*;
 import io.aeron.Aeron;
 import io.aeron.driver.MediaDriver;
@@ -13,6 +15,8 @@ import io.vertx.core.http.ServerWebSocket;
 import org.agrona.DirectBuffer;
 import io.aeron.logbuffer.Header;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -46,6 +50,9 @@ public final class WebGatewayVerticle extends AbstractVerticle {
     private volatile boolean simRunning = false;
     private volatile String  simProfile  = "HKEX_BASIS_ARB";
 
+    // Persistence
+    private TradeRepository tradeRepo;
+
     // Aeron lifecycle
     private MediaDriver           mediaDriver;
     private Aeron                 aeron;
@@ -61,9 +68,14 @@ public final class WebGatewayVerticle extends AbstractVerticle {
     private final FvUpdateDecoder       fvDecoder  = new FvUpdateDecoder();
     private final OrderUpdateDecoder    ouDecoder  = new OrderUpdateDecoder();
     private final OrderRequestDecoder   orDecoder  = new OrderRequestDecoder();
+    private AeronSubscriber             latencySub;
+    private final LatencyStatsDecoder   latDecoder = new LatencyStatsDecoder();
 
     @Override
     public void start(final Promise<Void> startPromise) {
+        tradeRepo = TradeRepositoryFactory.create();
+        System.out.println("[gateway] Persistence: " + tradeRepo.getClass().getSimpleName());
+
         // When arb.aeron.client=true, connect to an existing MediaDriver (Docker client mode).
         // Otherwise launch an embedded MediaDriver (standalone / dev mode).
         final boolean clientMode = Boolean.getBoolean("arb.aeron.client");
@@ -81,6 +93,7 @@ public final class WebGatewayVerticle extends AbstractVerticle {
         fvSub          = new AeronSubscriber(aeron.addSubscription(Channels.CHANNEL, Channels.FV_STREAM));
         orderUpdateSub = new AeronSubscriber(aeron.addSubscription(Channels.CHANNEL, Channels.ORDER_UPDATE_STREAM));
         orderSub       = new AeronSubscriber(aeron.addSubscription(Channels.CHANNEL, Channels.ORDER_STREAM));
+        latencySub     = new AeronSubscriber(aeron.addSubscription(Channels.CHANNEL, Channels.LATENCY_STREAM));
 
         // Control publisher — AeronPublisher wraps a Publication
         final AeronPublisher ctrlPublisher = new AeronPublisher(
@@ -114,6 +127,31 @@ public final class WebGatewayVerticle extends AbstractVerticle {
                     controlPublisher.sendCommand(cmd);
                     req.response().setStatusCode(204).end();
                 });
+            } else if ("GET".equals(req.method().name()) && req.path().startsWith("/api/trades")) {
+                final int page = Integer.parseInt(req.getParam("page") != null ? req.getParam("page") : "0");
+                final int size = Integer.parseInt(req.getParam("size") != null ? req.getParam("size") : "20");
+                final List<Map<String, Object>> trades = tradeRepo.findRecentOrders(page, size);
+                final StringBuilder sb = new StringBuilder("[");
+                for (int i = 0; i < trades.size(); i++) {
+                    if (i > 0) sb.append(',');
+                    sb.append('{');
+                    boolean first = true;
+                    for (final var entry : trades.get(i).entrySet()) {
+                        if (!first) sb.append(',');
+                        sb.append('"').append(entry.getKey()).append("\":");
+                        final Object v = entry.getValue();
+                        if (v == null) sb.append("null");
+                        else if (v instanceof Number) sb.append(v);
+                        else sb.append('"').append(v.toString().replace("\"", "\\\"")).append('"');
+                        first = false;
+                    }
+                    sb.append('}');
+                }
+                sb.append(']');
+                req.response()
+                   .putHeader("Content-Type", "application/json")
+                   .putHeader("Access-Control-Allow-Origin", "*")
+                   .end(sb.toString());
             } else {
                 req.response().setStatusCode(404).end();
             }
@@ -132,6 +170,7 @@ public final class WebGatewayVerticle extends AbstractVerticle {
 
     @Override
     public void stop() {
+        if (tradeRepo != null)   tradeRepo.close();
         if (aeron != null)       aeron.close();
         if (mediaDriver != null) mediaDriver.close();
     }
@@ -143,6 +182,7 @@ public final class WebGatewayVerticle extends AbstractVerticle {
         fvSub.poll(this::onFragment);
         orderUpdateSub.poll(this::onFragment);
         orderSub.poll(this::onFragment);
+        latencySub.poll(this::onFragment);
     }
 
     private void onFragment(final DirectBuffer buffer, final int offset, final int length, final Header header) {
@@ -165,10 +205,25 @@ public final class WebGatewayVerticle extends AbstractVerticle {
             case OrderUpdateDecoder.TEMPLATE_ID:
                 ouDecoder.wrap(buffer, msgOffset, blockLength, version);
                 json = JsonMessages.orderUpdate(ouDecoder);
+                tradeRepo.saveOrderUpdate(
+                    ouDecoder.orderId(), ouDecoder.basketId(),
+                    ouDecoder.status().name(),
+                    ouDecoder.fillPrice(), ouDecoder.fillQty(),
+                    System.currentTimeMillis());
                 break;
             case OrderRequestDecoder.TEMPLATE_ID:
                 orDecoder.wrap(buffer, msgOffset, blockLength, version);
                 json = JsonMessages.orderRequest(orDecoder);
+                tradeRepo.saveOrderRequest(
+                    orDecoder.orderId(), orDecoder.basketId(), orDecoder.legIndex(),
+                    JsonMessages.trimmedOrderRequestSymbol(orDecoder),
+                    orDecoder.side().name(),
+                    orDecoder.price(), orDecoder.qty(),
+                    System.currentTimeMillis());
+                break;
+            case LatencyStatsDecoder.TEMPLATE_ID:
+                latDecoder.wrap(buffer, msgOffset, blockLength, version);
+                json = JsonMessages.latencyStats(latDecoder);
                 break;
             default:
                 return;

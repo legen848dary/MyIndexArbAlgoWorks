@@ -75,6 +75,35 @@ public final class JsonMessages {
                ",\"ts\":" + upd.timestamp() + "}";
     }
 
+    /** Serialise a LatencyStats decode result to JSON. */
+    public static String latencyStats(final LatencyStatsDecoder s) {
+        final byte[] catBuf = new byte[8];
+        s.getCategory(catBuf, 0);
+        int clen = 8;
+        while (clen > 0 && (catBuf[clen - 1] == 0 || catBuf[clen - 1] == ' ')) clen--;
+        final String cat = new String(catBuf, 0, clen, StandardCharsets.US_ASCII);
+        return "{\"type\":\"LATENCY_STATS\",\"category\":\"" + cat +
+               "\",\"b0Sub1us\":"   + s.b0Sub1us()    +
+               ",\"b1to5us\":"      + s.b1to5us()     +
+               ",\"b5to10us\":"     + s.b5to10us()    +
+               ",\"b10to50us\":"    + s.b10to50us()   +
+               ",\"b50to100us\":"   + s.b50to100us()  +
+               ",\"b100to500us\":"  + s.b100to500us() +
+               ",\"bOver500us\":"   + s.bOver500us()  +
+               ",\"minNs\":"        + s.minNs()       +
+               ",\"maxNs\":"        + s.maxNs()       +
+               ",\"avgNs\":"        + s.avgNs()       +
+               ",\"sampleCount\":"  + s.sampleCount() +
+               ",\"ts\":"           + s.timestamp()   + "}";
+    }
+
+    /** Extract trimmed symbol string from an OrderRequest (for persistence). */
+    public static String trimmedOrderRequestSymbol(final OrderRequestDecoder msg) {
+        final byte[] buf = new byte[SYM_LEN];
+        msg.getSymbol(buf, 0);
+        return trimmed(buf, SYM_LEN);
+    }
+
     /** Serialise a simulation status update to JSON. */
     public static String simulationStatus(final String profile, final String phase, final long tickCount) {
         final boolean running = !"STOPPED".equals(phase);

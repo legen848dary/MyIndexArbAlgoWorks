@@ -61,7 +61,24 @@ export interface SimulationStatusMsg {
   ts: number
 }
 
-export type WsMessage = MarketDataMsg | FvUpdateMsg | OrderUpdateMsg | SystemEventMsg | OrderRequestMsg | SimulationStatusMsg
+export interface LatencyStatsMsg {
+  type: 'LATENCY_STATS'
+  category: string        // e.g. "SIGNAL", "RISK_CHK"
+  b0Sub1us: number        // samples < 1µs
+  b1to5us: number
+  b5to10us: number
+  b10to50us: number
+  b50to100us: number
+  b100to500us: number
+  bOver500us: number
+  minNs: number
+  maxNs: number
+  avgNs: number
+  sampleCount: number
+  ts: number
+}
+
+export type WsMessage = MarketDataMsg | FvUpdateMsg | OrderUpdateMsg | SystemEventMsg | OrderRequestMsg | SimulationStatusMsg | LatencyStatsMsg
 
 export interface ControlCommand {
   command: 'START_STRATEGY' | 'STOP_STRATEGY' | 'EMERGENCY_HALT' | 'START_SIMULATION' | 'STOP_SIMULATION' | 'SET_PROFILE'

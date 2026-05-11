@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IndexArb HFT — Architecture Presentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f172a;--card:#1e293b;--card2:#162032;
+  --accent:#38bdf8;--green:#4ade80;--orange:#fb923c;
+  --purple:#c084fc;--teal:#2dd4bf;--red:#f87171;
+  --yellow:#fbbf24;--indigo:#818cf8;
+  --text:#f1f5f9;--muted:#94a3b8;--border:#334155;
+}
+html{scroll-snap-type:y mandatory;scroll-behavior:smooth;overflow-y:scroll}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
+
+section{
+  scroll-snap-align:start;height:100vh;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:54px 80px;position:relative;overflow:hidden;
+}
+
+#si{
+  position:fixed;bottom:22px;right:28px;font-size:11px;
+  color:var(--muted);font-weight:600;z-index:9999;
+  background:rgba(15,23,42,.92);padding:4px 12px;
+  border-radius:20px;border:1px solid var(--border);
+}
+
+/* ── typography ── */
+.lbl{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+h2{font-size:clamp(24px,3vw,42px);font-weight:700;line-height:1.15}
+h3{font-size:clamp(13px,1.25vw,16px);font-weight:600}
+p{font-size:clamp(11px,.95vw,13px);color:var(--muted);line-height:1.65}
+.bar{width:40px;height:3px;background:var(--accent);border-radius:2px;margin:12px 0 18px}
+
+/* ── cards / grids ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}
+
+/* ── badges ── */
+.bd{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.05em;padding:2px 9px;border-radius:20px;margin-bottom:7px}
+.bb{background:rgba(56,189,248,.14);color:var(--accent);border:1px solid rgba(56,189,248,.3)}
+.bg2{background:rgba(74,222,128,.14);color:var(--green);border:1px solid rgba(74,222,128,.3)}
+.bo{background:rgba(251,146,60,.14);color:var(--orange);border:1px solid rgba(251,146,60,.3)}
+.br{background:rgba(248,113,113,.14);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+.bp{background:rgba(192,132,252,.14);color:var(--purple);border:1px solid rgba(192,132,252,.3)}
+.by{background:rgba(251,191,36,.14);color:var(--yellow);border:1px solid rgba(251,191,36,.3)}
+
+/* ── feature list ── */
+ul.fl{list-style:none;margin-top:8px}
+ul.fl li{font-size:11.5px;color:var(--muted);padding:5px 0;border-bottom:1px solid rgba(51,65,85,.4);display:flex;gap:7px}
+ul.fl li:last-child{border-bottom:none}
+ul.fl li::before{content:'—';color:var(--border);flex-shrink:0}
+
+/* ── code block ── */
+pre.code{font-family:'JetBrains Mono',monospace;font-size:11px;background:#0d1117;
+  border:1px solid #1e2d3d;border-radius:8px;padding:13px 15px;line-height:1.75;overflow-x:auto}
+.ck{color:#ff7b72}.ct{color:#ffa657}.cm{color:#d2a8ff}.cc{color:#6e7681}.cs{color:#a5d6ff}.cn{color:#79c0ff}
+
+/* ── table ── */
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);padding:9px 14px;border-bottom:1px solid var(--border)}
+td{padding:9px 14px;font-size:12px;border-bottom:1px solid rgba(51,65,85,.35);vertical-align:top}
+td:first-child{font-weight:600;color:var(--accent);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+
+/* ── compare cards ── */
+.cmp{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;height:100%}
+.cmp.yes{border-color:rgba(56,189,248,.45);background:rgba(56,189,248,.04)}
+.cmp.no{opacity:.6}
+.verd{font-size:10px;font-weight:700;margin-top:12px;padding:6px 11px;border-radius:6px}
+.v1{background:rgba(56,189,248,.12);color:var(--accent)}
+.v0{background:rgba(248,113,113,.12);color:var(--red)}
+
+/* ── tier boxes ── */
+.tier{border-radius:11px;padding:14px 20px;border:1px solid;margin-bottom:8px}
+.th2{background:rgba(248,113,113,.06);border-color:rgba(248,113,113,.3)}
+.tw2{background:rgba(251,191,36,.06);border-color:rgba(251,191,36,.3)}
+.tc2{background:rgba(74,222,128,.06);border-color:rgba(74,222,128,.3)}
+.tier-hd{display:flex;align-items:center;gap:9px;margin-bottom:5px}
+.tdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}
+.chip{font-size:9.5px;font-weight:600;padding:2px 7px;border-radius:3px;font-family:'JetBrains Mono',monospace}
+
+/* ── strategy grid ── */
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.sc{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:13px}
+.sn{font-size:20px;font-weight:700;color:var(--border);line-height:1;margin-bottom:5px}
+.sm{font-size:11.5px;font-weight:700;margin-bottom:3px}
+.sd{font-size:10px;color:var(--muted);line-height:1.5}
+
+/* ── decision cards ── */
+.dg{display:grid;grid-template-columns:repeat(5,1fr);gap:13px}
+.dc{background:var(--card);border:1px solid var(--border);border-top:3px solid var(--accent);border-radius:12px;padding:16px}
+.dn{font-size:28px;font-weight:700;color:var(--border);line-height:1;margin-bottom:9px}
+.dt{font-size:11.5px;color:var(--muted);line-height:1.55}
+
+/* ────────────── SLIDE 1: COVER ────────────── */
+.bg-l{position:absolute;inset:0;overflow:hidden;z-index:0}
+.gw{position:absolute;border-radius:50%;filter:blur(100px);opacity:.1}
+.gw1{width:680px;height:680px;background:var(--accent);top:-180px;right:-80px;animation:fa 9s ease-in-out infinite}
+.gw2{width:560px;height:560px;background:var(--purple);bottom:-180px;left:-80px;animation:fb 11s ease-in-out infinite}
+.gw3{width:380px;height:380px;background:var(--teal);top:42%;right:37%;animation:fc 13s ease-in-out infinite}
+@keyframes fa{0%,100%{transform:translate(0,0)}50%{transform:translate(-28px,38px)}}
+@keyframes fb{0%,100%{transform:translate(0,0)}50%{transform:translate(38px,-28px)}}
+@keyframes fc{0%,100%{transform:translate(0,0)}50%{transform:translate(-18px,18px)}}
+.gbg{position:absolute;inset:0;
+  background-image:linear-gradient(rgba(56,189,248,.025) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(56,189,248,.025) 1px,transparent 1px);
+  background-size:50px 50px}
+.ci{position:relative;z-index:1}
+.cey{display:flex;align-items:center;gap:9px;margin-bottom:18px}
+.ceyd{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:pu 2s infinite}
+@keyframes pu{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.35)}}
+.ceyt{font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--accent)}
+.ch1{font-size:clamp(36px,4.6vw,64px);font-weight:700;line-height:1.05;letter-spacing:-.02em;margin-bottom:16px}
+.grad{background:linear-gradient(135deg,var(--accent),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.cs2{font-size:clamp(14px,1.4vw,18px);color:var(--muted);margin-bottom:26px}
+.tags{display:flex;gap:9px;flex-wrap:wrap}
+.tg{display:flex;align-items:center;gap:6px;padding:6px 13px;background:rgba(56,189,248,.07);border:1px solid rgba(56,189,248,.17);border-radius:7px;font-size:11.5px;font-weight:500}
+.cft{position:absolute;bottom:38px;left:80px;right:80px;display:flex;justify-content:space-between;align-items:center;z-index:1}
+.mb{padding:5px 11px;background:var(--card);border:1px solid var(--border);border-radius:5px;font-size:10.5px;font-weight:500;color:var(--muted)}
+
+/* stat pill */
+.stat{text-align:center;padding:9px 14px;border-radius:8px}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 1  —  COVER
+     ═══════════════════════════════════════════════════════ -->
+<section id="s1">
+  <div class="bg-l">
+    <div class="gbg"></div>
+    <div class="gw gw1"></div>
+    <div class="gw gw2"></div>
+    <div class="gw gw3"></div>
+  </div>
+  <div class="ci">
+    <div class="cey"><div class="ceyd"></div><span class="ceyt">System Architecture · Technical Decisions</span></div>
+    <h1 class="ch1">Index <span class="grad">Arbitrage</span><br>Algorithmic<br>Trading System</h1>
+    <p class="cs2">Architecture &amp; Technical Decisions</p>
+    <div class="tags">
+      <div class="tg">⚡ Ultra-Low Latency</div>
+      <div class="tg">🧊 Zero-GC Hot Path</div>
+      <div class="tg">🌏 Asian Markets — HK · TW · CN</div>
+      <div class="tg" style="color:var(--muted)">Java 21 · Aeron IPC · SBE · React 18</div>
+    </div>
+  </div>
+  <div class="cft">
+    <div style="display:flex;gap:8px">
+      <div class="mb">🇭🇰 HKEX — HSI / MHI / SSF / CSOP A50</div>
+      <div class="mb">🇹🇼 TAIFEX — TAIEX / TWSE50 / TSMC SSF</div>
+      <div class="mb">🇨🇳 CSI / SGX — A50 Futures / CSI300</div>
+    </div>
+    <div style="font-size:11px;color:var(--muted)">↓ Scroll · Space · ↓ arrow to advance</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 2  —  THE PROBLEM
+     ═══════════════════════════════════════════════════════ -->
+<section id="s2">
+  <div class="lbl">01 — The Problem</div>
+  <h2>Why Index Arbitrage Requires <span style="color:var(--accent)">Extreme Latency</span></h2>
+  <div class="bar"></div>
+  <div class="g3">
+    <div class="card">
+      <div class="bd bg2">The Opportunity</div>
+      <h3 style="margin-bottom:10px">Futures Drift from Fair Value</h3>
+      <p style="margin-bottom:10px">When the futures price deviates from its theoretical fair value by <strong style="color:var(--green)">more than 15 BPS</strong>, a near-risk-free profit exists: buy the cheap leg, sell the expensive leg.</p>
+      <p>The arbitrage window is brief: <strong style="color:var(--text)">3–8 seconds</strong> before other participants close the gap.</p>
+      <div style="margin-top:14px;padding:10px;background:rgba(74,222,128,.07);border-radius:8px;border:1px solid rgba(74,222,128,.2);text-align:center">
+        <div style="font-size:26px;font-weight:700;color:var(--green)">+15 BPS</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:2px">Minimum entry threshold</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="bd bo">The Race</div>
+      <h3 style="margin-bottom:10px">Dozens of HFT Firms Compete</h3>
+      <p style="margin-bottom:10px">Every major HFT firm — Citadel, Jump Trading, Optiver — has the same signal. The edge belongs entirely to the <strong style="color:var(--orange)">fastest executor</strong>.</p>
+      <p>A 2-leg basket order (1 futures + 50 constituent stocks) must be dispatched before competitors close the spread.</p>
+      <div style="margin-top:14px;display:flex;gap:8px">
+        <div class="stat" style="flex:1;background:rgba(251,146,60,.07);border:1px solid rgba(251,146,60,.2)">
+          <div style="font-size:22px;font-weight:700;color:var(--orange)">51</div>
+          <div style="font-size:9px;color:var(--muted)">Orders per signal</div>
+        </div>
+        <div class="stat" style="flex:1;background:rgba(251,146,60,.07);border:1px solid rgba(251,146,60,.2)">
+          <div style="font-size:22px;font-weight:700;color:var(--orange)">&lt;1ms</div>
+          <div style="font-size:9px;color:var(--muted)">Dispatch target</div>
+        </div>
+        <div class="stat" style="flex:1;background:rgba(251,146,60,.07);border:1px solid rgba(251,146,60,.2)">
+          <div style="font-size:22px;font-weight:700;color:var(--orange)">3–8s</div>
+          <div style="font-size:9px;color:var(--muted)">Arb window</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="bd br">The Constraint</div>
+      <h3 style="margin-bottom:10px">Physics of Latency</h3>
+      <ul class="fl">
+        <li><strong style="color:var(--text)">Sub-µs IPC</strong> — kernel bypass via /dev/shm. Zero syscalls on hot path.</li>
+        <li><strong style="color:var(--text)">Zero heap allocation</strong> per tick — JVM GC pauses are milliseconds; 1000× over budget.</li>
+        <li><strong style="color:var(--text)">Risk checks &lt;5µs</strong> — fat-finger, price sanity, position limit all on hot path.</li>
+        <li><strong style="color:var(--text)">Fixed-point arithmetic</strong> — no floating-point boxing, no BigDecimal, no rounding error.</li>
+        <li><strong style="color:var(--text)">Pre-interned symbols</strong> — no new String on hot path; Agrona Object2ObjectHashMap.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 3  —  ARCHITECTURE DIAGRAM
+     ═══════════════════════════════════════════════════════ -->
+<section id="s3" style="padding:38px 56px">
+  <div class="lbl">02 — System Architecture</div>
+  <h2 style="font-size:clamp(20px,2.2vw,30px);margin-bottom:6px">End-to-End System Flow</h2>
+  <svg viewBox="0 0 1300 500" xmlns="http://www.w3.org/2000/svg" style="width:100%;flex:1;margin-top:6px">
+    <defs>
+      <marker id="ab" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="#38bdf8"/></marker>
+      <marker id="ap" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="#c084fc"/></marker>
+      <marker id="ao" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="#fb923c"/></marker>
+      <marker id="at" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="#2dd4bf"/></marker>
+      <marker id="ag" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="#4ade80"/></marker>
+      <marker id="ay" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="#fbbf24"/></marker>
+      <pattern id="pg" width="30" height="30" patternUnits="userSpaceOnUse">
+        <path d="M30 0L0 0 0 30" fill="none" stroke="rgba(56,189,248,.03)" stroke-width="1"/>
+      </pattern>
+    </defs>
+    <rect width="1300" height="500" fill="#0f172a" rx="10"/>
+    <rect width="1300" height="500" fill="url(#pg)" rx="10"/>
+
+    <!-- MARKETS (left column) -->
+    <rect x="8"  y="16"  width="108" height="52" rx="7" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="62" y="38"  text-anchor="middle" fill="#38bdf8" font-family="Inter,sans-serif" font-size="11" font-weight="700">HKEX</text>
+    <text x="62" y="54"  text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="8">HSI · MHI · SSF · CSOP A50</text>
+    <rect x="8"  y="82"  width="108" height="52" rx="7" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="62" y="104" text-anchor="middle" fill="#38bdf8" font-family="Inter,sans-serif" font-size="10.5" font-weight="700">TAIFEX/TWSE</text>
+    <text x="62" y="120" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="8">TAIEX · TWSE50 · TSMC SSF</text>
+    <rect x="8"  y="148" width="108" height="52" rx="7" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="62" y="170" text-anchor="middle" fill="#38bdf8" font-family="Inter,sans-serif" font-size="11" font-weight="700">CSI / SGX</text>
+    <text x="62" y="186" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="8">SGX A50 · CSI300 proxy</text>
+
+    <!-- arb-market-data -->
+    <rect x="130" y="8"  width="170" height="212" rx="9" fill="rgba(56,189,248,.05)" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="215" y="28" text-anchor="middle" fill="#38bdf8" font-family="Inter,sans-serif" font-size="11" font-weight="700">arb-market-data</text>
+    <text x="215" y="42" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="8.5">MarketDataGateway</text>
+    <rect x="140" y="49" width="150" height="24" rx="4" fill="#162032" stroke="#334155" stroke-width="1"/>
+    <text x="215" y="65" text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9.5">HkexFeedHandler</text>
+    <rect x="140" y="77" width="150" height="24" rx="4" fill="#162032" stroke="#334155" stroke-width="1"/>
+    <text x="215" y="93" text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9.5">TaifexFeedHandler</text>
+    <rect x="140" y="105" width="150" height="24" rx="4" fill="#162032" stroke="#334155" stroke-width="1"/>
+    <text x="215" y="121" text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9.5">CsiFeedHandler</text>
+    <text x="215" y="158" text-anchor="middle" fill="#475569" font-family="Inter,sans-serif" font-size="8" font-style="italic">Normalise → SBE encode</text>
+    <text x="215" y="172" text-anchor="middle" fill="#475569" font-family="Inter,sans-serif" font-size="8" font-style="italic">price: long ×10⁴</text>
+    <text x="215" y="186" text-anchor="middle" fill="#475569" font-family="Inter,sans-serif" font-size="8" font-style="italic">zero-GC Aeron publish</text>
+
+    <!-- arb-strategy -->
+    <rect x="450" y="8"  width="180" height="212" rx="9" fill="rgba(192,132,252,.05)" stroke="#c084fc" stroke-width="1.5"/>
+    <text x="540" y="28" text-anchor="middle" fill="#c084fc" font-family="Inter,sans-serif" font-size="11" font-weight="700">arb-strategy</text>
+    <text x="540" y="42" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="8.5">ArbSequencer + StrategyRegistry</text>
+    <rect x="460" y="49" width="160" height="20" rx="3" fill="#162032" stroke="#334155" stroke-width="1"/>
+    <text x="540" y="63" text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9">HkexBasisArb · MhiHsiBasisArb</text>
+    <rect x="460" y="73" width="160" height="20" rx="3" fill="#162032" stroke="#334155" stroke-width="1"/>
+    <text x="540" y="87" text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9">TwseEtfArb · CrossBorderEtfArb</text>
+    <rect x="460" y="97" width="160" height="20" rx="3" fill="#162032" stroke="#334155" stroke-width="1"/>
+    <text x="540" y="111" text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9">SsfBasisArb · CalendarSpreadArb</text>
+    <rect x="460" y="121" width="160" height="20" rx="3" fill="#162032" stroke="#334155" stroke-width="1"/>
+    <text x="540" y="135" text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9">HkCnIndexPairArb · VolSkewArb</text>
+    <text x="540" y="172" text-anchor="middle" fill="#475569" font-family="Inter,sans-serif" font-size="8" font-style="italic">OrderSink → ORDER [1002]</text>
+    <text x="540" y="186" text-anchor="middle" fill="#475569" font-family="Inter,sans-serif" font-size="8" font-style="italic">switch(templateId) dispatch</text>
+
+    <!-- arb-execution -->
+    <rect x="652" y="8"  width="178" height="192" rx="9" fill="rgba(251,146,60,.05)" stroke="#fb923c" stroke-width="1.5"/>
+    <text x="741" y="28" text-anchor="middle" fill="#fb923c" font-family="Inter,sans-serif" font-size="11" font-weight="700">arb-execution</text>
+    <text x="741" y="42" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="8.5">Order Management</text>
+    <rect x="662" y="49" width="158" height="22" rx="3" fill="#162032" stroke="#334155" stroke-width="1"/>
+    <text x="741" y="64" text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9">RiskGateway (&lt;5µs)</text>
+    <rect x="662" y="75" width="158" height="22" rx="3" fill="#162032" stroke="#334155" stroke-width="1"/>
+    <text x="741" y="90" text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9">BasketSlicer (51 child orders)</text>
+    <rect x="662" y="101" width="158" height="22" rx="3" fill="#162032" stroke="#334155" stroke-width="1"/>
+    <text x="741" y="116" text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9">MockExchangeConnector</text>
+    <rect x="662" y="127" width="158" height="22" rx="3" fill="#162032" stroke="#334155" stroke-width="1"/>
+    <text x="741" y="142" text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9">PositionBook</text>
+    <text x="741" y="179" text-anchor="middle" fill="#475569" font-family="Inter,sans-serif" font-size="8" font-style="italic">publishes ORDER_UPDATE [1003]</text>
+
+    <!-- arb-web-gateway -->
+    <rect x="852" y="8"  width="178" height="170" rx="9" fill="rgba(74,222,128,.05)" stroke="#4ade80" stroke-width="1.5"/>
+    <text x="941" y="28" text-anchor="middle" fill="#4ade80" font-family="Inter,sans-serif" font-size="11" font-weight="700">arb-web-gateway</text>
+    <text x="941" y="42" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="8.5">Vert.x 4.5.7 — port 8080</text>
+    <rect x="862" y="49" width="158" height="22" rx="3" fill="#162032" stroke="#334155" stroke-width="1"/>
+    <text x="941" y="64" text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9">WebGatewayVerticle</text>
+    <rect x="862" y="75" width="158" height="22" rx="3" fill="#162032" stroke="#334155" stroke-width="1"/>
+    <text x="941" y="90" text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9">AeronControlPublisher</text>
+    <rect x="862" y="101" width="158" height="22" rx="3" fill="#162032" stroke="#334155" stroke-width="1"/>
+    <text x="941" y="116" text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9">H2 / TradeRepository</text>
+    <text x="941" y="155" text-anchor="middle" fill="#475569" font-family="Inter,sans-serif" font-size="8" font-style="italic">ws://localhost:8080/ws</text>
+
+    <!-- arb-dashboard -->
+    <rect x="1052" y="8"  width="235" height="170" rx="9" fill="rgba(129,140,248,.05)" stroke="#818cf8" stroke-width="1.5"/>
+    <text x="1169" y="28" text-anchor="middle" fill="#818cf8" font-family="Inter,sans-serif" font-size="11" font-weight="700">arb-dashboard</text>
+    <text x="1169" y="42" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="8.5">React 18 · Vite · Tailwind — port 3000</text>
+    <rect x="1062" y="49" width="215" height="20" rx="3" fill="#162032" stroke="#334155" stroke-width="1"/>
+    <text x="1169" y="63" text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9">LiveMonitor · PnlPanel</text>
+    <rect x="1062" y="73" width="215" height="20" rx="3" fill="#162032" stroke="#334155" stroke-width="1"/>
+    <text x="1169" y="87" text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9">OrderBook · ControlPanel · SystemHealth</text>
+    <rect x="1062" y="97" width="215" height="20" rx="3" fill="#162032" stroke="#334155" stroke-width="1"/>
+    <text x="1169" y="111" text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9">Recharts + Zustand state</text>
+    <text x="1169" y="155" text-anchor="middle" fill="#475569" font-family="Inter,sans-serif" font-size="8" font-style="italic">Emergency Halt · Strategy Toggles</text>
+
+    <!-- ── AERON IPC BUS ── -->
+    <rect x="130" y="244" width="920" height="66" rx="7" fill="#1a2540" stroke="#334155" stroke-width="1.5"/>
+    <text x="142" y="260" text-anchor="start" fill="#334155" font-family="Inter,sans-serif" font-size="9" font-weight="700" letter-spacing="1">AERON IPC BUS — /dev/shm (kernel bypass, sub-µs)</text>
+    <!-- dividers -->
+    <line x1="295"  y1="250" x2="295"  y2="304" stroke="#1e293b" stroke-width="1.5"/>
+    <line x1="460"  y1="250" x2="460"  y2="304" stroke="#1e293b" stroke-width="1.5"/>
+    <line x1="622"  y1="250" x2="622"  y2="304" stroke="#1e293b" stroke-width="1.5"/>
+    <line x1="782"  y1="250" x2="782"  y2="304" stroke="#1e293b" stroke-width="1.5"/>
+    <line x1="922"  y1="250" x2="922"  y2="304" stroke="#1e293b" stroke-width="1.5"/>
+    <!-- stream labels -->
+    <text x="212" y="275" text-anchor="middle" fill="#38bdf8" font-family="Inter,sans-serif" font-size="10" font-weight="700">1001</text>
+    <text x="212" y="288" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="8">MARKET_DATA</text>
+    <text x="212" y="299" text-anchor="middle" fill="#475569" font-family="Inter,sans-serif" font-size="7">MarketDataTick · QuoteTick</text>
+
+    <text x="378" y="275" text-anchor="middle" fill="#c084fc" font-family="Inter,sans-serif" font-size="10" font-weight="700">1002</text>
+    <text x="378" y="288" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="8">ORDER</text>
+    <text x="378" y="299" text-anchor="middle" fill="#475569" font-family="Inter,sans-serif" font-size="7">OrderRequest</text>
+
+    <text x="541" y="275" text-anchor="middle" fill="#fb923c" font-family="Inter,sans-serif" font-size="10" font-weight="700">1003</text>
+    <text x="541" y="288" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="8">ORDER_UPDATE</text>
+    <text x="541" y="299" text-anchor="middle" fill="#475569" font-family="Inter,sans-serif" font-size="7">OrderUpdate · fills</text>
+
+    <text x="702" y="275" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="10" font-weight="700">1004</text>
+    <text x="702" y="288" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="8">CONTROL</text>
+    <text x="702" y="299" text-anchor="middle" fill="#475569" font-family="Inter,sans-serif" font-size="7">SystemEvent · Halt</text>
+
+    <text x="852" y="275" text-anchor="middle" fill="#2dd4bf" font-family="Inter,sans-serif" font-size="10" font-weight="700">1005</text>
+    <text x="852" y="288" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="8">FV</text>
+    <text x="852" y="299" text-anchor="middle" fill="#475569" font-family="Inter,sans-serif" font-size="7">FvUpdate · basisBps</text>
+
+    <text x="991" y="275" text-anchor="middle" fill="#fbbf24" font-family="Inter,sans-serif" font-size="10" font-weight="700">1006</text>
+    <text x="991" y="288" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="8">LATENCY</text>
+    <text x="991" y="299" text-anchor="middle" fill="#475569" font-family="Inter,sans-serif" font-size="7">LatencyBuckets · 5s</text>
+
+    <!-- arb-gambit (below bus) -->
+    <rect x="220" y="326" width="210" height="148" rx="9" fill="rgba(45,212,191,.05)" stroke="#2dd4bf" stroke-width="1.5"/>
+    <text x="325" y="346" text-anchor="middle" fill="#2dd4bf" font-family="Inter,sans-serif" font-size="11" font-weight="700">arb-gambit</text>
+    <text x="325" y="360" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="8.5">FV Pricing Engine</text>
+    <rect x="230" y="367" width="190" height="22" rx="3" fill="#162032" stroke="#334155" stroke-width="1"/>
+    <text x="325" y="382" text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9">FvEngine (hot &lt;10µs)</text>
+    <rect x="230" y="393" width="190" height="22" rx="3" fill="#162032" stroke="#334155" stroke-width="1"/>
+    <text x="325" y="408" text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9">NavCalculator · FuturesFvCalc</text>
+    <rect x="230" y="419" width="190" height="22" rx="3" fill="#162032" stroke="#334155" stroke-width="1"/>
+    <text x="325" y="434" text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9">DividendCalendar (Strata, warm)</text>
+    <rect x="230" y="445" width="190" height="22" rx="3" fill="#162032" stroke="#334155" stroke-width="1"/>
+    <text x="325" y="460" text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9">VolSurfaceCalibrator (finmath)</text>
+
+    <!-- ── ARROWS ── -->
+    <!-- markets → feed handler -->
+    <line x1="116" y1="42"  x2="128" y2="88"  stroke="#38bdf8" stroke-width="1.5" marker-end="url(#ab)" stroke-dasharray="4,3"/>
+    <line x1="116" y1="108" x2="128" y2="122" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#ab)" stroke-dasharray="4,3"/>
+    <line x1="116" y1="174" x2="128" y2="158" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#ab)" stroke-dasharray="4,3"/>
+    <!-- feed handler → bus -->
+    <line x1="215" y1="221" x2="215" y2="243" stroke="#38bdf8" stroke-width="2" marker-end="url(#ab)"/>
+    <!-- feed handler → strategy (above bus shortcut) -->
+    <line x1="300" y1="108" x2="448" y2="108" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#ab)" stroke-dasharray="6,3"/>
+    <text x="374" y="100" text-anchor="middle" fill="#38bdf8" font-family="Inter,sans-serif" font-size="7.5" font-weight="600">MARKET_DATA [1001]</text>
+    <!-- bus → strategy -->
+    <line x1="540" y1="244" x2="540" y2="222" stroke="#c084fc" stroke-width="1.5" marker-end="url(#ap)" stroke-dasharray="4,2"/>
+    <!-- strategy → execution (ORDER) -->
+    <line x1="631" y1="98"  x2="650" y2="98"  stroke="#c084fc" stroke-width="2" marker-end="url(#ap)"/>
+    <text x="640" y="91"  text-anchor="middle" fill="#c084fc" font-family="Inter,sans-serif" font-size="7.5" font-weight="600">ORDER [1002]</text>
+    <!-- execution → bus (ORDER_UPDATE) -->
+    <line x1="741" y1="201" x2="741" y2="243" stroke="#fb923c" stroke-width="1.5" marker-end="url(#ao)" stroke-dasharray="4,2"/>
+    <!-- bus → gambit (MARKET_DATA sub) -->
+    <line x1="325" y1="311" x2="325" y2="325" stroke="#2dd4bf" stroke-width="2" marker-end="url(#at)"/>
+    <!-- gambit → bus (FV [1005]) -->
+    <path d="M 430 390 C 450 390 460 320 460 311" stroke="#2dd4bf" stroke-width="1.5" fill="none" marker-end="url(#at)" stroke-dasharray="4,2"/>
+    <text x="462" y="370" fill="#2dd4bf" font-family="Inter,sans-serif" font-size="7.5" font-weight="600">FvUpdate</text>
+    <text x="462" y="382" fill="#2dd4bf" font-family="Inter,sans-serif" font-size="7.5" font-weight="600">[1005]</text>
+    <!-- web gateway → bus (subscriber) -->
+    <line x1="941" y1="244" x2="941" y2="180" stroke="#4ade80" stroke-width="1.5" marker-end="url(#ag)" stroke-dasharray="4,2"/>
+    <!-- web gateway → dashboard (websocket) -->
+    <line x1="1031" y1="84"  x2="1050" y2="84"  stroke="#4ade80" stroke-width="2" marker-end="url(#ag)"/>
+    <text x="1040" y="77"  text-anchor="middle" fill="#4ade80" font-family="Inter,sans-serif" font-size="7.5" font-weight="600">WebSocket</text>
+    <!-- FvUpdate fan to strategy (dashed) -->
+    <path d="M 540 220 C 540 400 435 395 435 395" stroke="#2dd4bf" stroke-width="1" fill="none" stroke-dasharray="3,3" opacity="0.5"/>
+
+    <!-- annotation pills -->
+    <rect x="132" y="458" width="160" height="26" rx="5" fill="rgba(248,113,113,.09)" stroke="rgba(248,113,113,.3)" stroke-width="1"/>
+    <text x="212" y="469" text-anchor="middle" fill="#f87171" font-family="Inter,sans-serif" font-size="8.5" font-weight="700">🔴 ZERO-GC HOT PATH</text>
+    <text x="212" y="480" text-anchor="middle" fill="#f87171" font-family="Inter,sans-serif" font-size="7">NavCalc · FvEngine · Strategies · Risk</text>
+    <rect x="302" y="458" width="160" height="26" rx="5" fill="rgba(251,191,36,.09)" stroke="rgba(251,191,36,.3)" stroke-width="1"/>
+    <text x="382" y="469" text-anchor="middle" fill="#fbbf24" font-family="Inter,sans-serif" font-size="8.5" font-weight="700">🟡 WARM PATH ~30s</text>
+    <text x="382" y="480" text-anchor="middle" fill="#fbbf24" font-family="Inter,sans-serif" font-size="7">DividendCalendar · VolSurface</text>
+    <rect x="850" y="458" width="148" height="26" rx="5" fill="rgba(74,222,128,.09)" stroke="rgba(74,222,128,.3)" stroke-width="1"/>
+    <text x="924" y="469" text-anchor="middle" fill="#4ade80" font-family="Inter,sans-serif" font-size="8.5" font-weight="700">🟢 WebSocket Bridge</text>
+    <text x="924" y="480" text-anchor="middle" fill="#4ade80" font-family="Inter,sans-serif" font-size="7">Vert.x non-blocking → React 18</text>
+    <rect x="1008" y="458" width="148" height="26" rx="5" fill="rgba(129,140,248,.09)" stroke="rgba(129,140,248,.3)" stroke-width="1"/>
+    <text x="1082" y="469" text-anchor="middle" fill="#818cf8" font-family="Inter,sans-serif" font-size="8.5" font-weight="700">🗄 H2 Persistence</text>
+    <text x="1082" y="480" text-anchor="middle" fill="#818cf8" font-family="Inter,sans-serif" font-size="7">Gateway layer only · audit log</text>
+  </svg>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 4  —  WHY AERON IPC?
+     ═══════════════════════════════════════════════════════ -->
+<section id="s4">
+  <div class="lbl">03 — Transport Layer</div>
+  <h2>Why <span style="color:var(--accent)">Aeron IPC</span> Over Kafka or ZeroMQ?</h2>
+  <div class="bar"></div>
+  <div class="g3" style="flex:1;align-items:stretch">
+    <div class="cmp yes">
+      <div class="bd bb">✅ Chosen</div>
+      <h3 style="color:var(--accent);margin-bottom:8px">Aeron IPC — v1.48.0</h3>
+      <p style="margin-bottom:10px;font-size:11px">Same-host shared memory via <code style="color:var(--accent)">/dev/shm</code></p>
+      <ul class="fl">
+        <li><strong style="color:var(--text)">Sub-µs latency</strong> — kernel bypass, no syscalls on hot path</li>
+        <li><strong style="color:var(--text)">Lock-free SPSC ring buffer</strong> — single producer, single consumer</li>
+        <li><strong style="color:var(--text)">Zero-copy, zero-GC</strong> on publish and poll</li>
+        <li><strong style="color:var(--text)">Back-pressure</strong> via ring buffer capacity signal</li>
+        <li><strong style="color:var(--text)">Built-in replay</strong> via Aeron Archive API</li>
+        <li><strong style="color:var(--text)">PingPongTest</strong> asserts &lt;10µs loopback over 10,000 messages</li>
+      </ul>
+      <div class="verd v1">✅ Chosen: arb window is 3–8s. Every µs matters.</div>
+    </div>
+    <div class="cmp no">
+      <div class="bd br">❌ Rejected</div>
+      <h3 style="margin-bottom:8px">Apache Kafka</h3>
+      <p style="margin-bottom:10px;font-size:11px">Distributed log — millisecond-range latency</p>
+      <ul class="fl">
+        <li>1–5ms latency (disk + network round-trip)</li>
+        <li>Excellent for durable, replayable event logs</li>
+        <li>Partitioned consumer groups, cross-host</li>
+        <li>Great for post-trade analytics pipeline</li>
+        <li>Consumer group coordination overhead</li>
+        <li>Wrong for &lt;10µs hot-path signal fan-out</li>
+      </ul>
+      <div class="verd v0">❌ Too slow: ~2ms vs sub-µs</div>
+    </div>
+    <div class="cmp no">
+      <div class="bd br">❌ Rejected</div>
+      <h3 style="margin-bottom:8px">TCP ZeroMQ</h3>
+      <p style="margin-bottom:10px;font-size:11px">Socket messaging — microsecond TCP loopback</p>
+      <ul class="fl">
+        <li>~5–50µs typical (TCP loopback, OS scheduling)</li>
+        <li>Flexible topology — pub/sub, push/pull, dealer</li>
+        <li>No built-in flow control or back-pressure</li>
+        <li>Cross-host capable</li>
+        <li>Network stack jitter unpredictable under load</li>
+        <li>Allocation on message receive (ZMsg objects)</li>
+      </ul>
+      <div class="verd v0">❌ Network stack jitter unacceptable</div>
+    </div>
+  </div>
+  <div style="margin-top:16px;padding:14px 20px;background:rgba(56,189,248,.05);border:1px solid rgba(56,189,248,.2);border-radius:10px;display:flex;gap:0;align-items:center">
+    <div style="text-align:center;padding:0 22px;border-right:1px solid var(--border)">
+      <div style="font-size:26px;font-weight:700;color:var(--accent)">&lt;1µs</div>
+      <div style="font-size:10px;color:var(--muted)">Aeron IPC P50</div>
+    </div>
+    <div style="text-align:center;padding:0 22px;border-right:1px solid var(--border)">
+      <div style="font-size:26px;font-weight:700;color:var(--orange)">~2ms</div>
+      <div style="font-size:10px;color:var(--muted)">Kafka P50</div>
+    </div>
+    <div style="text-align:center;padding:0 22px;border-right:1px solid var(--border)">
+      <div style="font-size:26px;font-weight:700;color:var(--red)">~15µs</div>
+      <div style="font-size:10px;color:var(--muted)">TCP ZeroMQ P50</div>
+    </div>
+    <div style="flex:1;padding-left:22px;font-size:12px;color:var(--muted)">
+      <strong style="color:var(--text)">arb-common PingPongTest</strong> sends 10,000 Aeron IPC round-trips and asserts P99 &lt;10µs.
+      Streams 1001–1006 are pre-created ring buffers in <code style="color:var(--accent)">/dev/shm</code>;
+      zero allocation on publish or poll via <strong style="color:var(--text)">SBE flyweight</strong> wrapping the ring buffer directly.
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 5  —  WHY SBE OVER PROTOBUF?
+     ═══════════════════════════════════════════════════════ -->
+<section id="s5">
+  <div class="lbl">04 — Wire Protocol</div>
+  <h2>Why <span style="color:var(--accent)">SBE</span> over Protobuf?</h2>
+  <div class="bar"></div>
+  <div class="g2" style="flex:1;align-items:start">
+    <div>
+      <div class="bd bb" style="margin-bottom:10px">✅ SBE — Simple Binary Encoding</div>
+      <div class="card" style="margin-bottom:12px">
+        <ul class="fl">
+          <li><strong style="color:var(--text)">Flyweight pattern</strong> — decoder wraps <code style="color:var(--accent)">DirectBuffer</code>. Zero allocation on decode.</li>
+          <li><strong style="color:var(--text)">Field-level access</strong> — read only the fields you need; no full parse.</li>
+          <li><strong style="color:var(--text)">5–10× less CPU</strong> than Protobuf for fixed-schema messages at sustained tick rate.</li>
+          <li><strong style="color:var(--text)">Schema versioned</strong> via templateId + schemaId; wire-compatible forward evolution.</li>
+          <li><strong style="color:var(--text)">LITTLE_ENDIAN</strong> native — no byte-swapping overhead on x86.</li>
+        </ul>
+      </div>
+      <pre class="code"><span class="cc">// SBE: zero-allocation decode (flyweight)</span>
+<span class="ct">MarketDataTickDecoder</span> tick = <span class="ck">new</span> <span class="ct">MarketDataTickDecoder</span>(); <span class="cc">// pre-allocated</span>
+tick.<span class="cm">wrap</span>(buffer, offset, blockLength, version);
+<span class="ck">long</span> price = tick.<span class="cm">price</span>();   <span class="cc">// direct buffer read — zero alloc</span>
+<span class="ck">long</span> qty   = tick.<span class="cm">qty</span>();
+<span class="cc">// Total: 2 native int64 reads. No objects created.</span></pre>
+    </div>
+    <div>
+      <div class="bd br" style="margin-bottom:10px">❌ Protobuf — not for &lt;10µs paths</div>
+      <div class="card" style="margin-bottom:12px">
+        <ul class="fl">
+          <li><strong style="color:var(--text)">Full deserialization</strong> — creates a complete Java object for every decode.</li>
+          <li><strong style="color:var(--text)">Every decode allocates</strong> — triggers GC under sustained tick rate.</li>
+          <li><strong style="color:var(--text)">Flexible schema evolution</strong> — excellent for cross-language REST/gRPC services.</li>
+          <li><strong style="color:var(--text)">Varint encoding overhead</strong> — extra CPU per variable-length field.</li>
+          <li><strong style="color:var(--text)">Wrong choice for hot path</strong> — right choice for cross-service APIs.</li>
+        </ul>
+      </div>
+      <pre class="code"><span class="cc">// Protobuf: allocates on every decode</span>
+<span class="ct">MarketDataProto.Tick</span> tick =
+    <span class="ct">MarketDataProto.Tick</span>.<span class="cm">parseFrom</span>(bytes);
+<span class="cc">// ↑ new Tick object + new ByteString +</span>
+<span class="cc">//   ArrayList for repeated fields → GC pressure</span>
+<span class="ck">long</span> price = tick.<span class="cm">getPrice</span>(); <span class="cc">// already deserialized</span></pre>
+    </div>
+  </div>
+  <div style="margin-top:14px;padding:11px 18px;background:var(--card);border-radius:8px;border:1px solid var(--border);font-size:11.5px;color:var(--muted)">
+    <strong style="color:var(--accent)">8 SBE message types:</strong>&nbsp;
+    MarketDataTick [1] · OrderRequest [2] · SystemEvent [3] · QuoteTick [4] · MarketVolumeTick [5] · ReferenceDataRecord [6] · FvUpdate [7] · OrderUpdate [8]
+    &nbsp;—&nbsp; all in <code style="color:var(--accent)">arb-common/src/main/resources/sbe/arb-messages.xml</code>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 6  —  ZERO-GC HOT PATH
+     ═══════════════════════════════════════════════════════ -->
+<section id="s6">
+  <div class="lbl">05 — Memory Architecture</div>
+  <h2>Zero-GC Hot Path <span style="color:var(--muted);font-weight:400;font-size:0.6em">— Three-Tier Compute Model</span></h2>
+  <div class="bar"></div>
+  <div class="g2" style="flex:1;align-items:start;gap:28px">
+    <div>
+      <!-- HOT -->
+      <div class="tier th2">
+        <div class="tier-hd">
+          <div class="tdot" style="background:var(--red)"></div>
+          <span style="font-size:14px;font-weight:600">🔴 Hot Path</span>
+          <span style="font-size:10px;font-weight:700;color:var(--red)">&lt;10µs per tick — ZERO GC MANDATORY</span>
+        </div>
+        <div class="chips">
+          <span class="chip" style="background:rgba(248,113,113,.15);color:var(--red)">NavCalculator</span>
+          <span class="chip" style="background:rgba(248,113,113,.15);color:var(--red)">FuturesFvCalculator</span>
+          <span class="chip" style="background:rgba(248,113,113,.15);color:var(--red)">FvEngine</span>
+          <span class="chip" style="background:rgba(248,113,113,.15);color:var(--red)">HkexBasisArb</span>
+          <span class="chip" style="background:rgba(248,113,113,.15);color:var(--red)">RiskGateway</span>
+          <span class="chip" style="background:rgba(248,113,113,.15);color:var(--red)">ArbSequencer</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);font-style:italic">No <code>new</code>, no boxing, no String creation. Pre-allocated flyweights, Agrona Object2ObjectHashMap. Prices as <code>long ×10⁴</code>.</div>
+      </div>
+      <div style="display:flex;justify-content:center;padding:5px 0">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+          <div style="font-size:9.5px;color:var(--muted)">AtomicLong.setRelease() ↕ getAcquire()</div>
+          <div style="width:2px;height:16px;background:var(--border)"></div>
+        </div>
+      </div>
+      <!-- WARM -->
+      <div class="tier tw2">
+        <div class="tier-hd">
+          <div class="tdot" style="background:var(--yellow)"></div>
+          <span style="font-size:14px;font-weight:600">🟡 Warm Path</span>
+          <span style="font-size:10px;font-weight:700;color:var(--yellow)">~30s periodic — Allocation OK</span>
+        </div>
+        <div class="chips">
+          <span class="chip" style="background:rgba(251,191,36,.15);color:var(--yellow)">DividendCalendar</span>
+          <span class="chip" style="background:rgba(251,191,36,.15);color:var(--yellow)">VolSurfaceCalibrator</span>
+          <span class="chip" style="background:rgba(251,191,36,.15);color:var(--yellow)">SpreadVolEstimator</span>
+          <span class="chip" style="background:rgba(251,191,36,.15);color:var(--yellow)">Strata / finmath-lib B-S</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);font-style:italic">Results written via <code>AtomicLong.setRelease()</code>. Strata ImmutableBean allocations acceptable here.</div>
+      </div>
+      <div style="display:flex;justify-content:center;padding:5px 0">
+        <div style="width:2px;height:16px;background:var(--border)"></div>
+      </div>
+      <!-- COLD -->
+      <div class="tier tc2">
+        <div class="tier-hd">
+          <div class="tdot" style="background:var(--green)"></div>
+          <span style="font-size:14px;font-weight:600">🟢 Cold Path</span>
+          <span style="font-size:10px;font-weight:700;color:var(--green)">Batch / offline — No latency budget</span>
+        </div>
+        <div class="chips">
+          <span class="chip" style="background:rgba(74,222,128,.15);color:var(--green)">MonteCarloPositionSizer</span>
+          <span class="chip" style="background:rgba(74,222,128,.15);color:var(--green)">Full Greeks</span>
+          <span class="chip" style="background:rgba(74,222,128,.15);color:var(--green)">finmath-lib MC</span>
+          <span class="chip" style="background:rgba(74,222,128,.15);color:var(--green)">VaR</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);font-style:italic">Deep analytics, position sizing. Run offline. Results feed strategy config. Zero impact on hot path.</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:7px">Warm → Hot Bridge Pattern</div>
+        <pre class="code"><span class="cc">// Warm thread writes result (single writer, ~30s)</span>
+<span class="ck">private final</span> <span class="ct">AtomicLong</span> dividendPv = <span class="ck">new</span> <span class="ct">AtomicLong</span>();
+
+<span class="ck">long</span> newPv = dividendCalendar.<span class="cm">computePv</span>(today); <span class="cc">// alloc OK here</span>
+dividendPv.<span class="cm">setRelease</span>(newPv); <span class="cc">// acquire-release fence</span>
+
+<span class="cc">// Hot thread reads per-tick (zero-GC acquire)</span>
+<span class="ck">long</span> pv = dividendPv.<span class="cm">getAcquire</span>(); <span class="cc">// lock-free, no alloc</span>
+<span class="ck">long</span> fv = futuresFv - pv * carry;    <span class="cc">// pure long arithmetic</span></pre>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:7px">⚠️ Common Pitfalls</div>
+        <div class="card" style="border-left:3px solid var(--red);margin-bottom:8px">
+          <div style="font-size:12px;font-weight:600;margin-bottom:5px">Strata B-S Trap</div>
+          <div style="font-size:11px;color:var(--muted)"><code style="color:var(--red)">BlackScholesFormulaRepository.price()</code> boxes <code>Double</code> — 2 heap allocs per call. Use <strong style="color:var(--yellow)">finmath-lib AnalyticFormulas</strong> for warm-path B-S instead.</div>
+        </div>
+        <div class="card" style="border-left:3px solid var(--red);margin-bottom:8px">
+          <div style="font-size:12px;font-weight:600;margin-bottom:5px">LongAdder Trap</div>
+          <div style="font-size:11px;color:var(--muted)"><code style="color:var(--red)">LongAdder</code> has no <code>set(value)</code> method — it's a multi-writer counter. Use <code style="color:var(--green)">AtomicLong.setRelease()</code> for the warm→hot bridge.</div>
+        </div>
+        <div class="card" style="border-left:3px solid var(--green)">
+          <div style="font-size:12px;font-weight:600;margin-bottom:5px">GC Validation</div>
+          <div style="font-size:11px;color:var(--muted)">Each module ships a <code style="color:var(--green)">*ZeroGcTest</code> running hot-path logic 100k times. Run with <code>-XX:+UseEpsilonGC</code> — JVM aborts on any allocation.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 7  —  ARBITRAGE MECHANICS
+     ═══════════════════════════════════════════════════════ -->
+<section id="s7">
+  <div class="lbl">06 — Arbitrage Mechanics</div>
+  <h2>Two-Leg <span style="color:var(--accent)">Index Arbitrage</span> — How It Works</h2>
+  <div class="bar"></div>
+  <div class="g2" style="flex:1;align-items:start;gap:28px">
+    <div style="display:flex;flex-direction:column;gap:0">
+      <!-- steps -->
+      <div style="display:flex;gap:14px;align-items:flex-start;padding-bottom:14px">
+        <div style="width:30px;height:30px;background:rgba(56,189,248,.12);border:2px solid var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:var(--accent);flex-shrink:0">1</div>
+        <div><div style="font-size:13px;font-weight:600;margin-bottom:3px">FvEngine calculates Fair Value per tick</div>
+        <div style="font-size:11px;color:var(--muted)">FV = Spot × e<sup>(r−q)T</sup> using Decimal4j long arithmetic. Dividend PV and carry cost subtracted. Result in <code>long ×10⁴</code>.</div></div>
+      </div>
+      <div style="width:2px;height:12px;background:var(--border);margin-left:14px"></div>
+      <div style="display:flex;gap:14px;align-items:flex-start;padding-bottom:14px">
+        <div style="width:30px;height:30px;background:rgba(56,189,248,.12);border:2px solid var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:var(--accent);flex-shrink:0">2</div>
+        <div><div style="font-size:13px;font-weight:600;margin-bottom:3px">Basis = Futures Market Price − Fair Value</div>
+        <div style="font-size:11px;color:var(--muted)">Published as FvUpdate [1005] with <code>annualisedBasisBps</code>. Positive = futures rich. Negative = futures cheap.</div></div>
+      </div>
+      <div style="width:2px;height:12px;background:var(--border);margin-left:14px"></div>
+      <div style="display:flex;gap:14px;align-items:flex-start;padding-bottom:14px">
+        <div style="width:30px;height:30px;background:rgba(251,146,60,.12);border:2px solid var(--orange);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:var(--orange);flex-shrink:0">3</div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--orange);margin-bottom:3px">Basis &gt; +15 BPS → Futures Rich</div>
+        <div style="font-size:11px;color:var(--muted)"><strong style="color:var(--text)">SELL</strong> futures (Leg 1) + <strong style="color:var(--text)">BUY</strong> 50 constituent stocks (Leg 2). Convergence trade. Lock in the spread at entry.</div></div>
+      </div>
+      <div style="width:2px;height:12px;background:var(--border);margin-left:14px"></div>
+      <div style="display:flex;gap:14px;align-items:flex-start;padding-bottom:14px">
+        <div style="width:30px;height:30px;background:rgba(192,132,252,.12);border:2px solid var(--purple);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:var(--purple);flex-shrink:0">4</div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--purple);margin-bottom:3px">Basis &lt; −15 BPS → Futures Cheap</div>
+        <div style="font-size:11px;color:var(--muted)"><strong style="color:var(--text)">BUY</strong> futures (Leg 1) + <strong style="color:var(--text)">SELL</strong> 50 constituent stocks (Leg 2). Reverse convergence.</div></div>
+      </div>
+      <div style="width:2px;height:12px;background:var(--border);margin-left:14px"></div>
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <div style="width:30px;height:30px;background:rgba(74,222,128,.12);border:2px solid var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:var(--green);flex-shrink:0">5</div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--green);margin-bottom:3px">P&amp;L realized when basis converges to zero</div>
+        <div style="font-size:11px;color:var(--muted)">Net delta = 0 (delta-1 hedge). Profit = spread captured at entry minus transaction costs. Exits within 3–8 seconds typically.</div></div>
+      </div>
+    </div>
+    <!-- Basis chart SVG -->
+    <div>
+      <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Basis Spread — Signal &amp; Convergence</div>
+      <svg viewBox="0 0 520 280" xmlns="http://www.w3.org/2000/svg" style="width:100%;border-radius:10px">
+        <rect width="520" height="280" fill="#1e293b" rx="10"/>
+        <defs>
+          <pattern id="cg" width="52" height="28" patternUnits="userSpaceOnUse">
+            <path d="M52 0L0 0 0 28" fill="none" stroke="rgba(51,65,85,.45)" stroke-width=".5"/>
+          </pattern>
+        </defs>
+        <rect width="520" height="280" fill="url(#cg)" rx="10"/>
+        <!-- axis labels -->
+        <text x="14" y="52"  fill="#64748b" font-family="Inter,sans-serif" font-size="9">+25 BPS</text>
+        <text x="14" y="100" fill="#64748b" font-family="Inter,sans-serif" font-size="9">+15 BPS</text>
+        <text x="22" y="148" fill="#64748b" font-family="Inter,sans-serif" font-size="9">0</text>
+        <text x="10" y="196" fill="#64748b" font-family="Inter,sans-serif" font-size="9">−15 BPS</text>
+        <text x="10" y="244" fill="#64748b" font-family="Inter,sans-serif" font-size="9">−25 BPS</text>
+        <!-- zero line -->
+        <line x1="60" y1="145" x2="505" y2="145" stroke="#334155" stroke-width="1.5"/>
+        <!-- +15 threshold -->
+        <line x1="60" y1="97"  x2="505" y2="97"  stroke="#fb923c" stroke-width="1.5" stroke-dasharray="8,4"/>
+        <text x="462" y="91" fill="#fb923c" font-family="Inter,sans-serif" font-size="8.5" font-weight="600">+15 BPS</text>
+        <!-- -15 threshold -->
+        <line x1="60" y1="193" x2="505" y2="193" stroke="#c084fc" stroke-width="1.5" stroke-dasharray="8,4"/>
+        <text x="462" y="207" fill="#c084fc" font-family="Inter,sans-serif" font-size="8.5" font-weight="600">−15 BPS</text>
+        <!-- basis line rising, crossing, converging -->
+        <polyline points="68,152 95,146 122,138 148,128 168,116 188,102 208,88 230,76 252,72 270,77 292,88 312,99 336,110 360,126 382,136 404,142 430,145 460,146 490,146"
+          fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- shaded profit zone -->
+        <polygon points="188,97 208,88 230,76 252,72 270,77 292,88 312,99 336,110 360,126 382,136 404,142 430,145 430,97 188,97"
+          fill="rgba(251,146,60,.08)" stroke="none"/>
+        <!-- signal dot -->
+        <circle cx="188" cy="102" r="5.5" fill="#fb923c"/>
+        <line x1="188" y1="97"  x2="188" y2="28" stroke="#fb923c" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="172" y="22" fill="#fb923c" font-family="Inter,sans-serif" font-size="8.5" font-weight="700">SIGNAL</text>
+        <text x="164" y="33" fill="#fb923c" font-family="Inter,sans-serif" font-size="7.5">SELL futures</text>
+        <text x="164" y="43" fill="#fb923c" font-family="Inter,sans-serif" font-size="7.5">BUY basket</text>
+        <!-- convergence dot -->
+        <circle cx="432" cy="145" r="5.5" fill="#4ade80"/>
+        <line x1="432" y1="145" x2="432" y2="262" stroke="#4ade80" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="408" y="270" fill="#4ade80" font-family="Inter,sans-serif" font-size="8.5" font-weight="700">CONVERGED</text>
+        <text x="410" y="280" fill="#4ade80" font-family="Inter,sans-serif" font-size="7.5">P&amp;L realized</text>
+        <!-- x-axis label -->
+        <text x="260" y="275" text-anchor="middle" fill="#475569" font-family="Inter,sans-serif" font-size="9">Time →   (arb window: ~3–8 seconds)</text>
+        <text x="280" y="15"  text-anchor="middle" fill="#94a3b8" font-family="Inter,sans-serif" font-size="9.5" font-weight="500">HSI Futures Basis vs Fair Value</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 8  —  STRATEGY ARCHITECTURE
+     ═══════════════════════════════════════════════════════ -->
+<section id="s8">
+  <div class="lbl">07 — Strategy Layer</div>
+  <h2>8 Arbitrage <span style="color:var(--accent)">Strategies</span></h2>
+  <div class="bar"></div>
+  <div class="sg">
+    <div class="sc" style="border-top:2px solid var(--accent)">
+      <div class="sn">01</div><div class="sm">HkexBasisArb</div>
+      <div class="sd">HSI Futures vs 50 Hang Seng constituents. Core HK index arb. 1 futures + 50-stock basket.</div>
+    </div>
+    <div class="sc" style="border-top:2px solid var(--accent)">
+      <div class="sn">02</div><div class="sm">MhiHsiBasisArb</div>
+      <div class="sd">Mini-HSI (MHI) vs full HSI Futures. 5× smaller notional. Capital-efficient intraday arb.</div>
+    </div>
+    <div class="sc" style="border-top:2px solid var(--teal)">
+      <div class="sn">03</div><div class="sm">TwseEtfArb</div>
+      <div class="sd">TWSE50 ETF vs TAIEX Futures on TAIFEX. ETF NAV vs futures fair value basis trade.</div>
+    </div>
+    <div class="sc" style="border-top:2px solid var(--teal)">
+      <div class="sn">04</div><div class="sm">CrossBorderEtfArb</div>
+      <div class="sd">CSOP A50 ETF (HKD) vs SGX FTSE China A50 Futures (USD). FX-adjusted cross-border spread.</div>
+    </div>
+    <div class="sc" style="border-top:2px solid var(--purple)">
+      <div class="sn">05</div><div class="sm">SsfBasisArb</div>
+      <div class="sd">HKEX Single Stock Futures vs underlying equity. Per-stock carry and dividend-adjusted basis.</div>
+    </div>
+    <div class="sc" style="border-top:2px solid var(--purple)">
+      <div class="sn">06</div><div class="sm">SsfCalendarSpreadArb</div>
+      <div class="sd">SSF near-month vs far-month roll. Captures calendar spread compression at expiry cycle.</div>
+    </div>
+    <div class="sc" style="border-top:2px solid var(--orange)">
+      <div class="sn">07</div><div class="sm">HkCnIndexPairArb</div>
+      <div class="sd">HSI vs CSI300 cross-border spread. Dual-listing premium / discount arb with FX hedge.</div>
+    </div>
+    <div class="sc" style="border-top:2px solid var(--orange)">
+      <div class="sn">08</div><div class="sm">VolSkewBasisArb</div>
+      <div class="sd">Vol surface skew-adjusted basis. Uses finmath-lib IV calibration to skew-correct fair value.</div>
+    </div>
+  </div>
+  <div style="margin-top:14px;padding:12px 18px;background:var(--card);border-radius:10px;border:1px solid var(--border)">
+    <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Unified Zero-GC Interface — all 8 strategies implement:</div>
+    <pre class="code" style="margin:0"><span class="ck">interface</span> <span class="ct">Strategy</span> {
+  <span class="ck">void</span> <span class="cm">onMarketData</span>(<span class="ct">MarketDataTickDecoder</span> tick, <span class="ct">OrderSink</span> orders);   <span class="cc">// hot path</span>
+  <span class="ck">void</span> <span class="cm">onFvUpdate</span>(<span class="ct">FvUpdateDecoder</span> fv, <span class="ct">OrderSink</span> orders);          <span class="cc">// hot path</span>
+  <span class="ck">default void</span> <span class="cm">onQuote</span>(<span class="ct">QuoteTickDecoder</span> tick, <span class="ct">OrderSink</span> orders) {}  <span class="cc">// optional</span>
+  <span class="ck">default void</span> <span class="cm">onReferenceData</span>(<span class="ct">ReferenceDataRecordDecoder</span> rec) {}    <span class="cc">// startup only</span>
+}</pre>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 9  —  PRE-TRADE RISK
+     ═══════════════════════════════════════════════════════ -->
+<section id="s9">
+  <div class="lbl">08 — Risk Management</div>
+  <h2>Pre-Trade Risk Checks in <span style="color:var(--accent)">&lt;5µs</span></h2>
+  <div class="bar"></div>
+  <div class="g2" style="flex:1;gap:28px;align-items:start">
+    <div>
+      <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px">Decision Tree — RiskGateway.validate()</div>
+      <!-- ORDER IN -->
+      <div style="padding:9px 14px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.25);border-radius:8px;font-size:12px;font-weight:600;color:var(--accent);margin-bottom:6px">
+        📥 OrderRequest received from Strategy [1002]
+      </div>
+      <!-- check 1 -->
+      <div style="display:flex;align-items:stretch">
+        <div style="display:flex;flex-direction:column;align-items:center;width:38px">
+          <div style="width:2px;height:10px;background:var(--border)"></div>
+          <div style="width:26px;height:26px;background:rgba(248,113,113,.12);border:2px solid var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--red);flex-shrink:0">1</div>
+          <div style="width:2px;flex:1;background:var(--border)"></div>
+        </div>
+        <div style="flex:1;padding:4px 0 14px 12px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:2px">Fat-finger quantity check</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--accent);margin-bottom:4px">if (qty &gt; maxQtyLimit) → REJECT</div>
+          <span style="font-size:10px;color:var(--red);font-weight:600;background:rgba(248,113,113,.1);padding:2px 7px;border-radius:4px">1 comparison ~0.3 ns</span>
+        </div>
+      </div>
+      <!-- check 2 -->
+      <div style="display:flex;align-items:stretch">
+        <div style="display:flex;flex-direction:column;align-items:center;width:38px">
+          <div style="width:26px;height:26px;background:rgba(248,113,113,.12);border:2px solid var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--red);flex-shrink:0">2</div>
+          <div style="width:2px;flex:1;background:var(--border)"></div>
+        </div>
+        <div style="flex:1;padding:4px 0 14px 12px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:2px">Price sanity check</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--accent);margin-bottom:4px">if (|price − lastTick| &gt; 5%) → REJECT</div>
+          <span style="font-size:10px;color:var(--red);font-weight:600;background:rgba(248,113,113,.1);padding:2px 7px;border-radius:4px">1 subtraction + comparison ~0.5 ns</span>
+        </div>
+      </div>
+      <!-- check 3 -->
+      <div style="display:flex;align-items:stretch">
+        <div style="display:flex;flex-direction:column;align-items:center;width:38px">
+          <div style="width:26px;height:26px;background:rgba(248,113,113,.12);border:2px solid var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--red);flex-shrink:0">3</div>
+          <div style="width:2px;flex:1;background:var(--border)"></div>
+        </div>
+        <div style="flex:1;padding:4px 0 14px 12px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:2px">Position limit check</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--accent);margin-bottom:4px">if (grossExposure + newQty &gt; maxPosition) → REJECT</div>
+          <span style="font-size:10px;color:var(--red);font-weight:600;background:rgba(248,113,113,.1);padding:2px 7px;border-radius:4px">1 addition + comparison ~0.5 ns</span>
+        </div>
+      </div>
+      <!-- pass -->
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="width:26px;height:26px;background:rgba(74,222,128,.12);border:2px solid var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--green);flex-shrink:0;margin-left:6px">✓</div>
+        <div style="padding-top:3px">
+          <div style="font-size:13px;font-weight:600;color:var(--green)">All checks pass → ORDER ACCEPTED</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Forwarded to MockExchangeConnector → BasketSlicer → 51 child orders dispatched</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card" style="border-top:3px solid var(--accent)">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Total Risk Check Path</div>
+        <div style="font-size:36px;font-weight:700;color:var(--accent);line-height:1">~1–5µs</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">3 comparisons + 1 atomic read (PositionBook) = hot-path compliant</div>
+      </div>
+      <div class="card">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Risk Config (config/risk.properties)</div>
+        <pre class="code" style="font-size:10px"><span class="cc"># per-symbol limits</span>
+risk.maxQtyLimit=5000
+risk.maxPriceDeviationPct=5
+risk.maxGrossExposure=50000000</pre>
+      </div>
+      <div class="card">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Emergency Halt</div>
+        <div style="font-size:11.5px;color:var(--muted)">Dashboard ControlPanel → HTTP POST <code style="color:var(--red)">/api/halt</code> → WebGateway → AeronControlPublisher → CONTROL [1004] → all strategies halt immediately.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 10  —  PERSISTENCE & OBSERVABILITY
+     ═══════════════════════════════════════════════════════ -->
+<section id="s10">
+  <div class="lbl">09 — Persistence &amp; Observability</div>
+  <h2>Audit Trail &amp; <span style="color:var(--accent)">Latency Telemetry</span></h2>
+  <div class="bar"></div>
+  <div class="g2" style="flex:1;gap:28px;align-items:start">
+    <div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px">🗄 Persistence Layer</div>
+      <div class="card" style="margin-bottom:12px">
+        <h3 style="margin-bottom:8px;color:var(--indigo)">H2 Embedded SQL</h3>
+        <ul class="fl">
+          <li>Lives in <strong style="color:var(--text)">arb-web-gateway</strong> only — zero impact on hot path</li>
+          <li><code style="color:var(--accent)">TradeRepository</code> interface abstracts persistence layer</li>
+          <li>REST endpoint <code style="color:var(--accent)">/api/trades</code> — paginated trade history</li>
+          <li>Chronicle Map/Queue upgrade path when needed</li>
+          <li>All 51 fill updates per basket persisted via ORDER_UPDATE [1003]</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:8px;color:var(--indigo)">Replay Engine</h3>
+        <ul class="fl">
+          <li><code style="color:var(--accent)">ReplayMain</code> in arb-market-data reads scenario files</li>
+          <li>Configurable speed multiplier (<code>--speed 2.0</code>)</li>
+          <li>Scenario: hkex-basis-arb-win — basis widens to 23 BPS, triggers arb, converges</li>
+          <li>Embedded Aeron MediaDriver — no external services needed</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px">📊 Latency Telemetry</div>
+      <div class="card" style="margin-bottom:12px">
+        <h3 style="margin-bottom:8px;color:var(--yellow)">LatencyRecorder — Zero-GC Histogram</h3>
+        <ul class="fl">
+          <li>Pre-allocated <code style="color:var(--accent)">long[]</code> buckets — zero GC on record</li>
+          <li>7 buckets: &lt;1µs · 1–5µs · 5–10µs · 10–50µs · 50–100µs · 100–500µs · &gt;500µs</li>
+          <li>Published to LATENCY_STREAM [1006] every 5 seconds as JSON snapshot</li>
+          <li>Live histogram in SystemHealth dashboard (Recharts bar chart)</li>
+        </ul>
+      </div>
+      <!-- latency histogram sketch -->
+      <div class="card">
+        <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.07em">SystemHealth — Live Latency Histogram</div>
+        <svg viewBox="0 0 420 100" xmlns="http://www.w3.org/2000/svg" style="width:100%">
+          <rect width="420" height="100" fill="transparent"/>
+          <!-- bars -->
+          <rect x="10"  y="20" width="42" height="68" rx="3" fill="rgba(74,222,128,.6)"/>
+          <rect x="65"  y="32" width="42" height="56" rx="3" fill="rgba(74,222,128,.5)"/>
+          <rect x="120" y="52" width="42" height="36" rx="3" fill="rgba(251,191,36,.5)"/>
+          <rect x="175" y="68" width="42" height="20" rx="3" fill="rgba(251,191,36,.35)"/>
+          <rect x="230" y="76" width="42" height="12" rx="3" fill="rgba(251,146,60,.4)"/>
+          <rect x="285" y="80" width="42" height="8"  rx="3" fill="rgba(251,146,60,.3)"/>
+          <rect x="340" y="84" width="42" height="4"  rx="3" fill="rgba(248,113,113,.4)"/>
+          <!-- labels -->
+          <text x="31"  y="98" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="7.5">&lt;1µs</text>
+          <text x="86"  y="98" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="7.5">1–5µs</text>
+          <text x="141" y="98" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="7.5">5–10µs</text>
+          <text x="196" y="98" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="7.5">10–50µs</text>
+          <text x="251" y="98" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="7.5">50–100</text>
+          <text x="306" y="98" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="7.5">100–500</text>
+          <text x="361" y="98" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="7.5">&gt;500µs</text>
+          <!-- count labels on bars -->
+          <text x="31"  y="16" text-anchor="middle" fill="#4ade80" font-family="Inter,sans-serif" font-size="8" font-weight="600">8241</text>
+          <text x="86"  y="28" text-anchor="middle" fill="#4ade80" font-family="Inter,sans-serif" font-size="8" font-weight="600">1862</text>
+          <text x="141" y="48" text-anchor="middle" fill="#fbbf24" font-family="Inter,sans-serif" font-size="8" font-weight="600">523</text>
+          <text x="196" y="64" text-anchor="middle" fill="#fbbf24" font-family="Inter,sans-serif" font-size="8" font-weight="600">97</text>
+          <text x="251" y="72" text-anchor="middle" fill="#fb923c" font-family="Inter,sans-serif" font-size="8" font-weight="600">14</text>
+          <text x="306" y="76" text-anchor="middle" fill="#fb923c" font-family="Inter,sans-serif" font-size="8" font-weight="600">3</text>
+          <text x="361" y="80" text-anchor="middle" fill="#f87171" font-family="Inter,sans-serif" font-size="8" font-weight="600">0</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 11  —  TECH STACK
+     ═══════════════════════════════════════════════════════ -->
+<section id="s11">
+  <div class="lbl">10 — Technology</div>
+  <h2>Tech Stack <span style="color:var(--muted);font-weight:400;font-size:0.65em">— Library Choices &amp; Rationale</span></h2>
+  <div class="bar"></div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;flex:1">
+    <table>
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Technology</th>
+          <th>Version</th>
+          <th>Hot Path?</th>
+          <th>Key Reason</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Hot-path IPC</td><td>Aeron</td><td>1.48.0</td><td><span class="bd bb">✅ Yes</span></td><td style="color:var(--muted)">Sub-µs shared memory, zero-copy ring buffer</td></tr>
+        <tr><td>Wire encoding</td><td>SBE (Simple Binary Encoding)</td><td>1.30.0</td><td><span class="bd bb">✅ Yes</span></td><td style="color:var(--muted)">Flyweight decode, zero-allocation, field-level access</td></tr>
+        <tr><td>Fixed-point math</td><td>Decimal4j</td><td>1.0.3</td><td><span class="bd bb">✅ Yes</span></td><td style="color:var(--muted)">All-primitive long arithmetic — no GC, no rounding error</td></tr>
+        <tr><td>Collections</td><td>Agrona</td><td>2.2.1</td><td><span class="bd bb">✅ Yes</span></td><td style="color:var(--muted)">Object2ObjectHashMap — cache-friendly, GC-free lookups</td></tr>
+        <tr><td>Yield curves / dividends</td><td>OpenGamma Strata</td><td>2.12.56</td><td><span class="bd by">🟡 Warm</span></td><td style="color:var(--muted)">Industry-standard fixed-income analytics (warm path only)</td></tr>
+        <tr><td>B-S / Monte Carlo</td><td>finmath-lib</td><td>6.0.20</td><td><span class="bd by">🟡 Warm/Cold</span></td><td style="color:var(--muted)">AnalyticFormulas near-zero-GC (warm); MC allocates (cold VaR)</td></tr>
+        <tr><td>Web bridge</td><td>Vert.x</td><td>4.5.7</td><td><span class="bd bg2">❌ No</span></td><td style="color:var(--muted)">Non-blocking event loop, WebSocket + REST, reactive pipeline</td></tr>
+        <tr><td>Dashboard</td><td>React 18 + Vite + Tailwind + Recharts</td><td>—</td><td><span class="bd bg2">❌ No</span></td><td style="color:var(--muted)">Fast HMR, real-time WebSocket charts, Shadcn/UI components</td></tr>
+        <tr><td>Persistence</td><td>H2 (Chronicle Queue roadmap)</td><td>2.x</td><td><span class="bd bg2">❌ No</span></td><td style="color:var(--muted)">Embedded audit log in gateway layer; Chronicle upgrade path</td></tr>
+        <tr><td>Runtime</td><td>Java 21 (GraalVM native optional)</td><td>21 LTS</td><td><span class="bd bb">✅ Yes</span></td><td style="color:var(--muted)">Virtual threads, Epsilon GC validation, Project Loom support</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 12  —  KEY DECISIONS
+     ═══════════════════════════════════════════════════════ -->
+<section id="s12">
+  <div class="lbl">11 — Summary</div>
+  <h2>5 Key <span style="color:var(--accent)">Design Decisions</span></h2>
+  <div class="bar"></div>
+  <div class="dg" style="flex:1;align-items:stretch">
+    <div class="dc">
+      <div class="dn">01</div>
+      <h3 style="margin-bottom:8px;color:var(--accent)">Aeron IPC over /dev/shm</h3>
+      <div class="dt">Beats any network transport for co-located processes. Sub-µs latency via kernel bypass. The arb window of 3–8s demands every µs.</div>
+    </div>
+    <div class="dc">
+      <div class="dn">02</div>
+      <h3 style="margin-bottom:8px;color:var(--accent)">SBE Flyweights + Pre-allocated Buffers</h3>
+      <div class="dt">Zero GC on the hot path. Decoder wraps DirectBuffer directly — no object creation on decode. 5–10× less CPU than Protobuf for fixed schemas.</div>
+    </div>
+    <div class="dc">
+      <div class="dn">03</div>
+      <h3 style="margin-bottom:8px;color:var(--accent)">Decimal4j Long Arithmetic</h3>
+      <div class="dt">All prices normalized to <code>long ×10⁴</code> at ingestion. No floating-point rounding error in price comparison or basis calculation. No BigDecimal allocations.</div>
+    </div>
+    <div class="dc">
+      <div class="dn">04</div>
+      <h3 style="margin-bottom:8px;color:var(--accent)">Three-Tier Compute Model</h3>
+      <div class="dt">Hot (&lt;10µs, zero-GC) / Warm (~30s, Strata) / Cold (batch, MC). Expensive analytics run without touching latency. AtomicLong bridge transfers results lock-free.</div>
+    </div>
+    <div class="dc">
+      <div class="dn">05</div>
+      <h3 style="margin-bottom:8px;color:var(--accent)">Two-Leg Delta-1 Basket Execution</h3>
+      <div class="dt">Mathematically sound index arb. Net delta = 0. Profit realized on spread convergence. 51 orders per signal dispatched by BasketSlicer via RiskGateway in &lt;1ms.</div>
+    </div>
+  </div>
+  <div style="margin-top:18px;padding:13px 20px;background:rgba(56,189,248,.05);border:1px solid rgba(56,189,248,.2);border-radius:10px;display:flex;align-items:center;justify-content:space-between">
+    <div style="font-size:12px;color:var(--muted)">
+      <strong style="color:var(--text)">Phase 7 complete</strong> — Core arb strategies, execution, web gateway, Docker deployment, replay engine all implemented.
+    </div>
+    <div style="display:flex;gap:10px">
+      <div class="mb">./gradlew build</div>
+      <div class="mb">./start-all.sh</div>
+      <div class="mb">http://localhost:3000</div>
+    </div>
+  </div>
+</section>
+
+<!-- slide indicator -->
+<div id="si">1 / 12</div>
+
+<script>
+(function(){
+  const secs = document.querySelectorAll('section');
+  const ind  = document.getElementById('si');
+  const N    = secs.length;
+  const obs  = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        ind.textContent = (Array.from(secs).indexOf(e.target) + 1) + ' / ' + N;
+      }
+    });
+  }, { threshold: 0.5 });
+  secs.forEach(s => obs.observe(s));
+
+  document.addEventListener('keydown', e => {
+    const cur = Array.from(secs).find(s => {
+      const r = s.getBoundingClientRect();
+      return r.top > -10 && r.top < window.innerHeight / 2;
+    });
+    if (!cur) return;
+    if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+      e.preventDefault();
+      const nx = cur.nextElementSibling;
+      if (nx && nx.tagName === 'SECTION') nx.scrollIntoView({ behavior: 'smooth' });
+    }
+    if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+      e.preventDefault();
+      const pv = cur.previousElementSibling;
+      if (pv && pv.tagName === 'SECTION') pv.scrollIntoView({ behavior: 'smooth' });
+    }
+  });
+})();
+</script>
+</body>
+</html>

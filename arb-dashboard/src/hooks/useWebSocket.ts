@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useStore } from '../store/useStore'
 import { useTradeStore } from '../store/useTradeStore'
-import type { WsMessage, OrderRequestMsg, OrderUpdateMsg, SimulationStatusMsg } from '../types/messages'
+import type { WsMessage, OrderRequestMsg, OrderUpdateMsg, SimulationStatusMsg, LatencyStatsMsg } from '../types/messages'
 
 const WS_URL = 'ws://localhost:8080/ws'
 const RECONNECT_DELAY = 3000
@@ -11,7 +11,7 @@ export function useWebSocket() {
   const reconnectT = useRef<ReturnType<typeof setTimeout> | null>(null)
   const {
     setConnected, handleMarketData, handleFvUpdate,
-    handleOrderUpdate, handleSystemEvent, handleSimulationStatus,
+    handleOrderUpdate, handleSystemEvent, handleSimulationStatus, handleLatencyStats,
   } = useStore()
   const {
     handleOrderRequest,
@@ -40,6 +40,7 @@ export function useWebSocket() {
           case 'SYSTEM_EVENT':       handleSystemEvent(msg);                       break
           case 'ORDER_REQUEST':      handleOrderRequest(msg as OrderRequestMsg);   break
           case 'SIMULATION_STATUS':  handleSimulationStatus(msg as SimulationStatusMsg); break
+          case 'LATENCY_STATS':      handleLatencyStats(msg as LatencyStatsMsg);         break
         }
       } catch { /* ignore malformed messages */ }
     }
@@ -54,7 +55,7 @@ export function useWebSocket() {
     }
   }, [
     setConnected, handleMarketData, handleFvUpdate,
-    handleOrderUpdate, handleSystemEvent, handleSimulationStatus,
+    handleOrderUpdate, handleSystemEvent, handleSimulationStatus, handleLatencyStats,
     handleOrderRequest, handleTradeOrderUpdate,
   ])
 

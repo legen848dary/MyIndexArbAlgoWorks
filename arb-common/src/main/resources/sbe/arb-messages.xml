@@ -21,6 +21,7 @@
         <type name="Symbol12"   primitiveType="char" length="12"  description="12-char instrument symbol"/>
         <type name="Message128" primitiveType="char" length="128" description="128-char free-text message"/>
         <type name="Currency3"  primitiveType="char" length="3"   description="ISO 4217 3-char currency code (e.g. HKD, TWD, CNY)"/>
+        <type name="Category8" primitiveType="char" length="8"  description="8-char category name"/>
 
         <!-- Enumerations -->
         <enum name="Exchange" encodingType="uint8" description="Source exchange identifier">
@@ -166,6 +167,28 @@
         <field name="timestamp"  id="8" type="int64"       description="Epoch nanoseconds"/>
         <field name="basketId"   id="9"  type="int64"      description="Basket ID from originating OrderRequest (0 if standalone)"/>
         <field name="legIndex"   id="10" type="uint8"      description="Leg index matching the OrderRequest (0 if standalone)"/>
+    </sbe:message>
+
+    <!--
+        Message 9: LatencyStats
+        Published by arb-strategy and arb-execution to LATENCY_STREAM (1006).
+        Reports a rolling histogram snapshot for one latency category.
+        Bucket boundaries in nanoseconds: <1µs | 1-5µs | 5-10µs | 10-50µs | 50-100µs | 100-500µs | >500µs
+    -->
+    <sbe:message name="LatencyStats" id="9" description="Latency histogram snapshot for one measurement category">
+        <field name="category"      id="1"  type="Category8" description="Category name: e.g. SIGNAL, RISK_CHK"/>
+        <field name="b0Sub1us"      id="2"  type="int64"     description="Sample count: latency &lt; 1µs"/>
+        <field name="b1to5us"       id="3"  type="int64"     description="Sample count: 1µs le latency &lt; 5µs"/>
+        <field name="b5to10us"      id="4"  type="int64"     description="Sample count: 5µs le latency &lt; 10µs"/>
+        <field name="b10to50us"     id="5"  type="int64"     description="Sample count: 10µs le latency &lt; 50µs"/>
+        <field name="b50to100us"    id="6"  type="int64"     description="Sample count: 50µs le latency &lt; 100µs"/>
+        <field name="b100to500us"   id="7"  type="int64"     description="Sample count: 100µs le latency &lt; 500µs"/>
+        <field name="bOver500us"    id="8"  type="int64"     description="Sample count: latency ge 500µs"/>
+        <field name="minNs"         id="9"  type="int64"     description="Minimum observed latency in nanoseconds"/>
+        <field name="maxNs"         id="10" type="int64"     description="Maximum observed latency in nanoseconds"/>
+        <field name="avgNs"         id="11" type="int64"     description="Average latency in nanoseconds"/>
+        <field name="sampleCount"   id="12" type="int64"     description="Total sample count since last reset"/>
+        <field name="timestamp"     id="13" type="int64"     description="Epoch milliseconds of this snapshot"/>
     </sbe:message>
 
 </sbe:messageSchema>
