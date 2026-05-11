@@ -44,6 +44,20 @@ public final class JsonMessages {
                ",\"ts\":" + fv.timestamp() + "}";
     }
 
+    /** Serialise an OrderRequest decode result to JSON. */
+    public static String orderRequest(final OrderRequestDecoder msg) {
+        final byte[] symBuf = new byte[SYM_LEN];
+        msg.getSymbol(symBuf, 0);
+        return "{\"type\":\"ORDER_REQUEST\",\"orderId\":" + msg.orderId() +
+               ",\"symbol\":\"" + trimmed(symBuf, SYM_LEN) +
+               "\",\"side\":\"" + msg.side().name() +
+               "\",\"price\":" + msg.price() +
+               ",\"qty\":" + msg.qty() +
+               ",\"orderType\":\"" + msg.orderType().name() +
+               "\",\"basketId\":" + msg.basketId() +
+               ",\"legIndex\":" + msg.legIndex() + "}";
+    }
+
     /** Serialise an OrderUpdate decode result to JSON. */
     public static String orderUpdate(final OrderUpdateDecoder upd) {
         final byte[] symBuf = new byte[SYM_LEN];
@@ -55,7 +69,17 @@ public final class JsonMessages {
                ",\"fillQty\":" + upd.fillQty() +
                ",\"status\":\"" + upd.status().name() +
                "\",\"rejectCode\":" + upd.rejectCode() +
+               ",\"basketId\":" + upd.basketId() +
+               ",\"legIndex\":" + upd.legIndex() +
                ",\"ts\":" + upd.timestamp() + "}";
+    }
+
+    /** Serialise a simulation status update to JSON. */
+    public static String simulationStatus(final String profile, final String phase, final long tickCount) {
+        return "{\"type\":\"SIMULATION_STATUS\",\"profile\":\"" + profile +
+               "\",\"phase\":\"" + phase +
+               "\",\"tickCount\":" + tickCount +
+               ",\"ts\":" + System.currentTimeMillis() + "}";
     }
 
     /** Serialise a SystemEvent decode result to JSON. */

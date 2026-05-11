@@ -48,6 +48,7 @@ public final class WebGatewayVerticle extends AbstractVerticle {
     private AeronSubscriber       marketDataSub;
     private AeronSubscriber       fvSub;
     private AeronSubscriber       orderUpdateSub;
+    private AeronSubscriber       orderSub;
     private AeronControlPublisher controlPublisher;
 
     // SBE decoders (pre-allocated; used only from the Vert.x event-loop thread)
@@ -55,6 +56,7 @@ public final class WebGatewayVerticle extends AbstractVerticle {
     private final MarketDataTickDecoder mdDecoder  = new MarketDataTickDecoder();
     private final FvUpdateDecoder       fvDecoder  = new FvUpdateDecoder();
     private final OrderUpdateDecoder    ouDecoder  = new OrderUpdateDecoder();
+    private final OrderRequestDecoder   orDecoder  = new OrderRequestDecoder();
 
     @Override
     public void start(final Promise<Void> startPromise) {
@@ -74,6 +76,7 @@ public final class WebGatewayVerticle extends AbstractVerticle {
         marketDataSub  = new AeronSubscriber(aeron.addSubscription(Channels.CHANNEL, Channels.MARKET_DATA_STREAM));
         fvSub          = new AeronSubscriber(aeron.addSubscription(Channels.CHANNEL, Channels.FV_STREAM));
         orderUpdateSub = new AeronSubscriber(aeron.addSubscription(Channels.CHANNEL, Channels.ORDER_UPDATE_STREAM));
+        orderSub       = new AeronSubscriber(aeron.addSubscription(Channels.CHANNEL, Channels.ORDER_STREAM));
 
         // Control publisher — AeronPublisher wraps a Publication
         final AeronPublisher ctrlPublisher = new AeronPublisher(
@@ -132,6 +135,7 @@ public final class WebGatewayVerticle extends AbstractVerticle {
         marketDataSub.poll(this::onFragment);
         fvSub.poll(this::onFragment);
         orderUpdateSub.poll(this::onFragment);
+        orderSub.poll(this::onFragment);
     }
 
     private void onFragment(final DirectBuffer buffer, final int offset, final int length, final Header header) {
@@ -155,6 +159,10 @@ public final class WebGatewayVerticle extends AbstractVerticle {
                 ouDecoder.wrap(buffer, msgOffset, blockLength, version);
                 json = JsonMessages.orderUpdate(ouDecoder);
                 break;
+            case OrderRequestDecoder.TEMPLATE_ID:
+                orDecoder.wrap(buffer, msgOffset, blockLength, version);
+                json = JsonMessages.orderRequest(orDecoder);
+                break;
             default:
                 return;
         }
@@ -169,8 +177,18 @@ public final class WebGatewayVerticle extends AbstractVerticle {
 
     private void handleClientCommand(final String msg) {
         // Forward raw command string to CONTROL_STREAM (truncate to SBE field max 128 chars)
-        if (msg != null && !msg.isBlank()) {
-            controlPublisher.sendCommand(msg.length() > 128 ? msg.substring(0, 128) : msg);
+        if (msg == null || msg.isBlank()) return;
+        final String cmd = msg.length() > 128 ? msg.substring(0, 128) : msg;
+        controlPublisher.sendCommand(cmd);
+        // Echo simulation lifecycle commands back to all WebSocket clients as SIMULATION_STATUS
+        if (cmd.startsWith("START_SIMULATION:")) {
+            final String profile = cmd.substring("START_SIMULATION:".length()).trim();
+            broadcast(JsonMessages.simulationStatus(profile, "STARTING", 0));
+        } else if (cmd.equals("STOP_SIMULATION")) {
+            broadcast(JsonMessages.simulationStatus("", "STOPPED", 0));
+        } else if (cmd.startsWith("SET_PROFILE:")) {
+            final String profile = cmd.substring("SET_PROFILE:".length()).trim();
+            broadcast(JsonMessages.simulationStatus(profile, "PROFILE_SET", 0));
         }
     }
 }
