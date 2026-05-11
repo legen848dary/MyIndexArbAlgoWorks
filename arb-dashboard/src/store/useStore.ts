@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { MarketDataMsg, FvUpdateMsg, OrderUpdateMsg, SystemEventMsg, SimulationStatusMsg, LatencyStatsMsg } from '../types/messages'
+import { useTradeStore } from './useTradeStore'
 
 export interface PricePoint {
   ts: number
@@ -119,12 +120,28 @@ export const useStore = create<AppState>()((set) => ({
   simProfile: 'HKEX_BASIS_ARB',
   simPhase: 'STEADY',
   simTickCount: 0,
-  handleSimulationStatus: (msg) => set((s) => ({
-    simRunning:   msg.running ?? msg.phase !== 'STOPPED',
-    simProfile:   msg.profile || s.simProfile,
-    simPhase:     msg.phase,
-    simTickCount: msg.tickCount,
-  })),
+  handleSimulationStatus: (msg) => {
+    // When a new simulation starts, flush all stale trade/order/P&L state
+    if (msg.phase === 'STARTING') {
+      useTradeStore.getState().clearAll()
+      set(() => ({
+        simRunning:   true,
+        simProfile:   msg.profile || 'HKEX_BASIS_ARB',
+        simPhase:     'STARTING',
+        simTickCount: 0,
+        orders:       [],
+        cumulativePnl: 0,
+        pnlHistory:   [],
+      }))
+      return
+    }
+    set((s) => ({
+      simRunning:   msg.running ?? msg.phase !== 'STOPPED',
+      simProfile:   msg.profile || s.simProfile,
+      simPhase:     msg.phase,
+      simTickCount: msg.tickCount,
+    }))
+  },
 
   latencyStats: {},
   handleLatencyStats: (msg) =>

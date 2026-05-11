@@ -29,6 +29,7 @@ interface TradeStoreState {
 
   handleOrderRequest: (msg: OrderRequestMsg) => void
   handleOrderUpdate: (msg: OrderUpdateMsg) => void
+  clearAll: () => void
 }
 
 const MAX_TRADES = 20
@@ -118,6 +119,8 @@ export const useTradeStore = create<TradeStoreState>()((set) => ({
       return { trades, recentTrades }
     })
   },
+
+  clearAll: () => set({ trades: new Map(), recentTrades: [] }),
 }))
 
 function inferStrategy(symbol: string): string {
