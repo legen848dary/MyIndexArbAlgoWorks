@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useStore } from '@/store/useStore'
 import { useTradeStore } from '@/store/useTradeStore'
@@ -6,8 +6,6 @@ import type { ArbTrade } from '@/store/useTradeStore'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { TradeDetailModal } from '@/components/TradeDetailModal'
 import { formatTimestamp } from '@/lib/utils'
-
-const SYMBOLS = ['HSI.HK', 'MHI.HK', '0050.TW', '2330.TW', 'CSI300.CN']
 
 const STATUS_COLORS: Record<string, string> = {
   OPEN:     'border-blue-500/50 bg-blue-500/10 text-blue-400',
@@ -60,8 +58,18 @@ interface LiveMonitorProps {
 export function LiveMonitor({ onViewAllTrades }: LiveMonitorProps) {
   const [symbol, setSymbol]         = useState('HSI.HK')
   const [selectedBasketId, setBasketId] = useState<number | null>(null)
-  const priceHistory  = useStore((s) => s.priceHistory[symbol] ?? [])
-  const recentTrades  = useTradeStore((s) => s.recentTrades.slice(0, 4))
+
+  // Only show symbols that have received data — derived from live priceHistory keys
+  const availableSymbols = useStore((s) => Object.keys(s.priceHistory))
+  const priceHistory     = useStore((s) => s.priceHistory[symbol] ?? [])
+  const recentTrades     = useTradeStore((s) => s.recentTrades.slice(0, 4))
+
+  // Auto-switch to the first available symbol when the selected one has no data
+  useEffect(() => {
+    if (availableSymbols.length > 0 && !availableSymbols.includes(symbol)) {
+      setSymbol(availableSymbols[0])
+    }
+  }, [availableSymbols, symbol])
 
   const chartData = priceHistory.map((p) => ({
     time:   formatTimestamp(p.ts),
@@ -82,7 +90,10 @@ export function LiveMonitor({ onViewAllTrades }: LiveMonitorProps) {
               onChange={(e) => setSymbol(e.target.value)}
               className="rounded-md border bg-background px-3 py-1 text-sm"
             >
-              {SYMBOLS.map((s) => <option key={s} value={s}>{s}</option>)}
+              {availableSymbols.length === 0
+                ? <option value="">No data yet</option>
+                : availableSymbols.map((s) => <option key={s} value={s}>{s}</option>)
+              }
             </select>
           </CardHeader>
           <CardContent>

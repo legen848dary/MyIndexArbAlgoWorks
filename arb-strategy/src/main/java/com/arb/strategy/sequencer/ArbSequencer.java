@@ -78,9 +78,8 @@ public final class ArbSequencer implements AutoCloseable {
                     .basketId(basketId)
                     .legIndex((short) legIndex)
                     .encodedLength() + MessageHeaderEncoder.ENCODED_LENGTH;
+                // Hot thread — no logging here; [ARB BASKET] in each strategy summarises the submission
                 publisher.publish(txBuffer, 0, msgLen);
-                System.out.printf("[SEQ] orderId=%d basketId=%d leg=%d %s %s qty=%d price=%d%n",
-                    orderId, basketId, legIndex, symbol, side.name(), qty, price);
             }
         };
     }
