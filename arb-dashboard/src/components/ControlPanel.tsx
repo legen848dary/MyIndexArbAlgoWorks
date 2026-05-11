@@ -7,10 +7,10 @@ import { Badge } from '@/components/ui/badge'
 import { AlertTriangle, Play, Square } from 'lucide-react'
 
 const SIM_PROFILES = [
-  { value: 'HKEX_BASIS_ARB', label: 'HSI Basis Arb (HKEX)' },
-  { value: 'TWSE_ETF_ARB',   label: 'TWSE ETF NAV Arb'      },
-  { value: 'SSF_CALENDAR',   label: 'SSF Calendar Spread'   },
-  { value: 'HK_CN_PAIR',     label: 'HK/CN Index Pair'      },
+  { value: 'HKEX_BASIS_ARB', label: 'HSI Basis Arb (HKEX)', enabled: true  },
+  { value: 'TWSE_ETF_ARB',   label: 'TWSE ETF NAV Arb ⏳',  enabled: false },
+  { value: 'SSF_CALENDAR',   label: 'SSF Calendar Spread ⏳', enabled: false },
+  { value: 'HK_CN_PAIR',     label: 'HK/CN Index Pair ⏳',   enabled: false },
 ]
 
 const PHASE_COLORS: Record<string, string> = {
@@ -74,7 +74,7 @@ export function ControlPanel({ send }: ControlPanelProps) {
             className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm"
           >
             {SIM_PROFILES.map((p) => (
-              <option key={p.value} value={p.value}>{p.label}</option>
+              <option key={p.value} value={p.value} disabled={!p.enabled}>{p.label}</option>
             ))}
           </select>
 
@@ -103,7 +103,7 @@ export function ControlPanel({ send }: ControlPanelProps) {
           {simRunning && (
             <p className="text-xs text-muted-foreground">
               Profile: <span className="font-medium text-foreground">{simProfile}</span>
-              &nbsp;·&nbsp;Arb window every ~13s
+              &nbsp;·&nbsp;Arb window every ~30s
             </p>
           )}
         </div>

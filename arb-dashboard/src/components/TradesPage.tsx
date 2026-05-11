@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useTradeStore, type ArbTrade } from '@/store/useTradeStore'
+import { useTradeStore } from '@/store/useTradeStore'
+import type { ArbTrade } from '@/store/useTradeStore'
 import { TradeDetailModal } from '@/components/TradeDetailModal'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -76,7 +77,7 @@ function TradeRow({ trade, onClick }: { trade: ArbTrade; onClick: () => void }) 
 
 export function TradesPage() {
   const { recentTrades }              = useTradeStore()
-  const [selectedTrade, setTrade]     = useState<ArbTrade | null>(null)
+  const [selectedBasketId, setBasketId]     = useState<number | null>(null)
 
   if (recentTrades.length === 0) {
     return (
@@ -97,7 +98,7 @@ export function TradesPage() {
 
   return (
     <>
-      <TradeDetailModal trade={selectedTrade} onClose={() => setTrade(null)} />
+      <TradeDetailModal basketId={selectedBasketId} onClose={() => setBasketId(null)} />
 
       <div className="space-y-4">
         {/* Summary bar */}
@@ -135,7 +136,7 @@ export function TradesPage() {
             <TradeRow
               key={trade.basketId}
               trade={trade}
-              onClick={() => setTrade(trade)}
+              onClick={() => setBasketId(trade.basketId)}
             />
           ))}
         </div>

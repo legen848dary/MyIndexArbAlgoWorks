@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useStore } from '@/store/useStore'
-import { useTradeStore, type ArbTrade } from '@/store/useTradeStore'
+import { useTradeStore } from '@/store/useTradeStore'
+import type { ArbTrade } from '@/store/useTradeStore'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { TradeDetailModal } from '@/components/TradeDetailModal'
 import { formatTimestamp } from '@/lib/utils'
@@ -58,7 +59,7 @@ interface LiveMonitorProps {
 
 export function LiveMonitor({ onViewAllTrades }: LiveMonitorProps) {
   const [symbol, setSymbol]         = useState('HSI.HK')
-  const [selectedTrade, setTrade]   = useState<ArbTrade | null>(null)
+  const [selectedBasketId, setBasketId] = useState<number | null>(null)
   const priceHistory  = useStore((s) => s.priceHistory[symbol] ?? [])
   const recentTrades  = useTradeStore((s) => s.recentTrades.slice(0, 4))
 
@@ -70,7 +71,7 @@ export function LiveMonitor({ onViewAllTrades }: LiveMonitorProps) {
 
   return (
     <>
-      <TradeDetailModal trade={selectedTrade} onClose={() => setTrade(null)} />
+      <TradeDetailModal basketId={selectedBasketId} onClose={() => setBasketId(null)} />
 
       <div className="space-y-4">
         <Card>
@@ -125,7 +126,7 @@ export function LiveMonitor({ onViewAllTrades }: LiveMonitorProps) {
                   <RecentTradeRow
                     key={trade.basketId}
                     trade={trade}
-                    onClick={() => setTrade(trade)}
+                    onClick={() => setBasketId(trade.basketId)}
                   />
                 ))}
               </div>

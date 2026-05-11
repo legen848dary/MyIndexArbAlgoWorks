@@ -1,3 +1,4 @@
+import { useTradeStore } from '@/store/useTradeStore'
 import type { ArbTrade, LegInfo } from '@/store/useTradeStore'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -184,11 +185,13 @@ function LegDetailRow({ leg, label }: { leg: LegInfo; label: string }) {
 // ── Main modal ────────────────────────────────────────────────────────────────
 
 interface Props {
-  trade: ArbTrade | null
+  basketId: number | null
   onClose: () => void
 }
 
-export function TradeDetailModal({ trade, onClose }: Props) {
+export function TradeDetailModal({ basketId, onClose }: Props) {
+  // Live lookup — re-renders automatically as fills arrive
+  const trade = useTradeStore((s) => basketId != null ? (s.trades.get(basketId) ?? null) : null)
   if (!trade) return null
 
   const decisionLog = buildDecisionLog(trade)
