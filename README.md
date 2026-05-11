@@ -70,281 +70,133 @@ primary filter: if it allocates on the hot path, it does not belong there.
 
 ### Java 21
 
-Java 21 is chosen over Go, C++, or Python for several concrete reasons.
-Virtual Threads (JEP 444) allow warm-path analytics threads to block
-freely on I/O or computationally heavy calibration loops without consuming
-OS threads, while the hot path runs on a pinned platform thread that the
-scheduler never preempts mid-tick. Record classes provide immutable,
-structurally typed value objects — dividend schedule entries, reference
-data records — at zero runtime cost compared to plain fields. Sealed
-interfaces give the SBE message dispatch hierarchy an exhaustive,
-statically verifiable type structure that the JIT compiler can fully
-devirtualise.
+**Chosen for:** production-grade JIT quality, mature HFT ecosystem, and the ability to achieve zero-GC on the hot path through pre-allocation without sacrificing expressiveness on analytics layers.
 
-Python is excluded because its GIL prevents true parallelism across
-analytics tiers, and its object model allocates on every arithmetic
-operation. Go is excluded because its garbage collector, while
-generational and low-pause, still introduces jitter measurable at the
-sub-100µs deadline the hot path demands. Go's GC scan latency is
-non-deterministic at nanosecond scale in the way that Java's Epsilon GC
-(a no-op collector that aborts immediately on any allocation) is not.
-C++ would eliminate GC entirely but would require reimplementing the
-entire analytics stack — Strata, finmath-lib, Agrona — from scratch.
-Java 21 delivers production-grade JIT code quality, a mature HFT
-ecosystem, and the discipline to achieve zero-GC on the hot path through
-pre-allocation, without sacrificing expressiveness on the analytics
-layers.
+- **Virtual Threads (JEP 444):** warm-path analytics threads block freely on calibration loops without consuming OS threads; hot path runs on a pinned platform thread the scheduler never preempts mid-tick
+- **Record classes:** immutable, structurally typed value objects (dividend schedule entries, reference data) at zero runtime cost
+- **Sealed interfaces:** exhaustive, statically verifiable SBE dispatch hierarchy the JIT can fully devirtualise
+- **JIT inline expansion:** after warm-up, the entire `NavCalculator → FuturesFvCalculator → FvEngine.dispatch()` chain compiles to a single native method — native code quality equivalent to C++ for fixed-point multiply-accumulate
 
-The JVM's JIT compiler is the additional factor that makes Java
-competitive with C++ on the hot path. After warm-up, the JIT
-inline-expands the entire `NavCalculator` → `FuturesFvCalculator` →
-`FvEngine.dispatch()` call chain into a single compiled native method,
-eliminating virtual dispatch overhead and letting the CPU's out-of-order
-engine see the full arithmetic instruction stream. The resulting native
-code quality is functionally equivalent to what a C++ compiler produces
-for the same fixed-point multiply-accumulate operations.
+**Why not alternatives:**
+- **Python:** GIL prevents true parallelism across analytics tiers; object model allocates on every arithmetic operation
+- **Go:** GC scan latency is non-deterministic at nanosecond scale; no Epsilon-equivalent abort-on-alloc guarantee
+- **C++:** entire analytics stack (Strata, finmath-lib, Agrona) would need reimplementing from scratch
+
+---
 
 ### Aeron IPC
 
-Aeron transports messages between processes over `/dev/shm` (POSIX shared
-memory) using a lock-free single-producer single-consumer ring buffer.
-The producer writes a message directly into the memory-mapped file; the
-consumer polls the same physical memory from its own address space.
-No kernel calls, no copies, no network stack. The result is measured
-sub-microsecond inter-process latency — typically 200–500 ns loopback
-on modern hardware — with zero heap allocation on either end.
+**Chosen for:** zero-allocation lock-free inter-process messaging over shared memory — the only transport that fits inside a sub-10µs hot-path budget.
 
-Kafka is excluded because its broker architecture requires at least one
-TCP round-trip per message even on a single host, adding milliseconds
-of latency and introducing broker availability as a hard dependency.
-ZeroMQ over `ipc://` transport avoids the network stack but still
-crosses the kernel boundary on each send, adding several microseconds.
-The Disruptor pattern is single-process only — it cannot span the
-`arb-gambit` / `arb-strategy` module boundary, which is a hard
-architectural requirement for process-level isolation and independent
-deployment. gRPC serialises every message through Protobuf encoding and
-adds HTTP/2 framing overhead, both of which are incompatible with a
-zero-GC hot path.
+- **Mechanism:** lock-free SPSC ring buffer over `/dev/shm` (POSIX shared memory); producer writes directly to memory-mapped file, consumer polls the same physical memory — no kernel calls, no copies, no network stack
+- **Measured latency:** 200–500 ns loopback on modern hardware
+- **Zero allocation:** `offer()`/`poll()` produce no heap objects on either end
+- **Non-blocking:** `Publication.offer()` returns immediately (or a back-pressure code) — hot thread never blocks on a slow consumer
+- **Back-pressure visibility:** codes monitored and published to `LATENCY_STREAM (1006)` for operator view in `SystemHealth`
 
-Aeron's `Publication.offer()` returns immediately if the ring buffer has
-space, or returns a negative back-pressure code if it is full. The
-hot thread never blocks waiting for a slow consumer. Back-pressure codes
-are monitored and published to `LATENCY_STREAM (1006)` for operator
-visibility in the `SystemHealth` dashboard view.
+**Why not alternatives:**
+- **Kafka:** broker requires TCP round-trip per message even on a single host → milliseconds of added latency + broker availability dependency
+- **ZeroMQ `ipc://`:** avoids the network stack but still crosses the kernel boundary per send (~several µs)
+- **Disruptor:** single-process only — cannot span the `arb-gambit` / `arb-strategy` module boundary
+- **gRPC:** Protobuf encoding + HTTP/2 framing overhead incompatible with a zero-GC hot path
+
+---
 
 ### SBE Serialisation
 
-Simple Binary Encoding generates Java encoder and decoder classes that
-wrap a `DirectBuffer` as flyweights. There is no heap object created
-during decode — the decoder is a struct that advances a position pointer
-over a pre-allocated `UnsafeBuffer` and exposes primitive accessor
-methods. `tick.price()` returns a `long` by reading 8 bytes from a
-fixed offset; it constructs no Java object whatsoever.
+**Chosen for:** zero-allocation encode/decode of fixed-schema financial messages — eliminates serialisation cost from the latency budget entirely.
 
-This is a structural difference from Protobuf, which allocates a
-`Message.Builder` on every decode and boxes all numeric fields to their
-object equivalents. FlatBuffers avoids most decode allocation but still
-requires an object-graph root pointer. JSON is excluded categorically:
-even Jackson's streaming API allocates `String` objects for every field
-name and string value encountered, and the text-to-number parsing cost
-alone would exceed the entire hot-path latency budget.
+- **Flyweight model:** generated encoder/decoder classes wrap a `DirectBuffer`; `tick.price()` reads 8 bytes from a fixed offset, constructs no Java object
+- **Schema-first:** changes to `arb-messages.xml` regenerate all encoder/decoder classes via `./gradlew :arb-common:generateSbeStubs` — schema drift between publisher and subscriber is a compile-time error, not a runtime surprise
 
-For fixed-schema financial messages where every field is known at compile
-time, SBE's schema-first flyweight model eliminates the entire
-serialisation cost from the latency budget. Schema changes require a
-code-generation step (`./gradlew :arb-common:generateSbeStubs`) that
-regenerates all encoder/decoder classes from `arb-messages.xml`, making
-schema drift between publisher and subscriber a compile-time error
-rather than a runtime surprise.
+**Why not alternatives:**
+- **Protobuf:** allocates `Message.Builder` on every decode; boxes all numeric fields to object equivalents
+- **FlatBuffers:** avoids most decode allocation but still requires an object-graph root pointer
+- **JSON (Jackson streaming):** allocates `String` for every field name and value; text-to-number parsing alone would exceed the entire hot-path latency budget
+
+---
 
 ### Decimal4j for Fixed-Point Arithmetic
 
-IEEE 754 `double` is wrong for financial prices for two independent
-reasons. First, most decimal fractions cannot be represented exactly in
-binary floating point. The value 0.1 in `double` is a repeating binary
-fraction — approximately 0.100000000000000005551. In a NAV calculation
-summing 82 HSI constituent stock prices each multiplied by a weight
-factor, these representation errors compound into a basis signal that
-does not correspond to any real market condition. A strategy triggering
-on a 5 BPS phantom basis caused by floating-point rounding would
-generate spurious orders.
+**Chosen for:** exact decimal arithmetic with a `long → long` API — no floating-point rounding, no autoboxing.
 
-Second, every Java primitive `double` passed to a method expecting
-`Double` — in any analytics library that uses generic types — is
-auto-boxed to a heap-allocated `Double` object. This allocation is
-invisible at the call site but real in the GC's accounting. On the hot
-path, any such allocation is forbidden.
+- **Fixed-point scale:** prices at 10⁴ (HSI 19000.00 → `190_000_000L`), basis BPS at 10², constituent weights at 10⁶ — applied at ingestion, released only in `JsonMessages` for the WebSocket display layer
+- **`DecimalArithmetic` API:** accepts and returns `long` exclusively — no boxing, no rounding error, no allocation
 
-Decimal4j addresses both problems by storing all prices as `long` with
-a fixed decimal scale (10⁴ for prices, 10² for basis BPS, 10⁶ for
-constituent weights). Its `DecimalArithmetic` API accepts and returns
-`long` exclusively — no boxing, no rounding error, no allocation.
-`BigDecimal` is excluded because it allocates a `byte[]` backing array
-for every value, making it no better than `Double` from a GC
-perspective. The fixed-point convention — HSI 19000.00 stored as
-`190_000_000L` — is applied at ingestion in the feed handlers and never
-relaxed until the display layer in `arb-web-gateway`, where
-`JsonMessages` formats the `long` back to a decimal string for the
-WebSocket client.
+**Why not alternatives:**
+- **`double`:** most decimal fractions cannot be represented exactly in binary — rounding errors compound across 82 constituent weights into phantom basis signals; auto-boxing to `Double` allocates on the hot path
+- **`BigDecimal`:** allocates a `byte[]` backing array per value — no better than `Double` from a GC perspective
+
+---
 
 ### Agrona Collections
 
-The JDK's `HashMap` allocates one `Map.Entry` node object per stored
-key-value pair on the heap. Its `get()` method dereferences that node
-through a pointer chain, and `HashMap.put()` allocates a new `Entry`
-on every insertion. More critically, `HashMap.get()` calls `equals()`
-on key comparison — for `String` keys, that involves `char[]` content
-comparison even when the strings are interned.
+**Chosen for:** cache-friendly symbol lookups with zero allocation on `get()`.
 
-Agrona's `Object2ObjectHashMap` uses open addressing with linear probing
-over a flat `Object[]` array. There are no node objects — the key and
-value for each slot sit in adjacent array positions. A `get()` call
-computes a hash, jumps to the array index, and compares references in a
-tight loop over contiguous memory. With pre-interned `String` keys
-(reference equality, not `equals()`), the hot-path resolution of a
-symbol to its constituent record is a single array index plus an
-identity comparison.
+- **`Object2ObjectHashMap`:** open addressing with linear probing over a flat `Object[]` array — no `Entry` node objects; key and value sit in adjacent array positions
+- **Pre-interned keys:** all symbol `String` objects interned at startup → `get()` uses reference equality (`==`), not `equals()` → no `char[]` content comparison
+- **Cache efficiency:** 82 constituent lookups per tick walk a contiguous memory block that fits in L2 cache vs. `HashMap`'s 82 pointer-chasing cache misses
 
-For an 82-constituent HSI basket, `ReferenceDataStore` performs 82
-symbol lookups per tick. With `HashMap`, that is 82 potential cache
-misses chasing `Entry` node pointers scattered through the heap. With
-Agrona's flat array layout, all 82 lookups walk a contiguous block of
-memory that fits in L2 cache. All key `String` objects are pre-interned
-at startup, so `get()` comparisons use identity equality throughout.
+**Why not JDK `HashMap`:** allocates one `Map.Entry` per key-value pair; `put()` allocates on every insertion; `get()` chases heap pointers
+
+---
 
 ### OpenGamma Strata and finmath-lib
 
-The system uses two financial analytics libraries, deliberately assigned
-to different computation tiers, because no single library satisfies both
-zero-GC and analytics-completeness requirements simultaneously.
+**Chosen for:** two libraries, deliberately tiered — no single library satisfies both zero-GC and analytics-completeness simultaneously.
 
-OpenGamma Strata handles yield curve construction and dividend discount
-models on the warm path. Strata is the most complete open-source
-implementation of standard ISDA-style rate curve bootstrapping and ETD
-product models available in Java, with support for calendar arithmetic,
-day-count conventions, and multi-currency dividend schedules. Computing
-dividend-adjusted futures fair value requires accurate interpolation of
-the OIS discount curve at arbitrary future tenors — a task that requires
-Strata's full curve infrastructure. Strata is excluded from the hot path
-because it allocates freely by design: its `ImmutableBean` value types
-create new instances on every construction.
+- **Strata (warm path ~30s):** yield curve bootstrapping (OIS discount curve), dividend discount model, calendar arithmetic, day-count conventions — most complete open-source ISDA-style ETD implementation in Java; excluded from hot path because `ImmutableBean` allocates freely by design
+  - ⚠️ **Strata B-S trap:** `BlackScholesFormulaRepository.price()` boxes `Double` on every call (two heap allocs per call) — never used on any thread sharing GC with the hot path
+- **finmath-lib `AnalyticFormulas` (warm path):** B-S option pricing and implied-vol Newton iteration using only primitive `double` — near-zero-GC; used by `VolSurfaceCalibrator` on a 30-second schedule
+- **finmath-lib Monte Carlo (cold path / offline):** allocates `RandomVariable[]` and `double[]` path arrays — acceptable because it runs offline, results feed into position size limits, never per-tick
 
-The Strata Black-Scholes boxing trap is worth stating explicitly.
-Strata's `BlackScholesFormulaRepository.price()` routes through
-`NORMAL.getCDF(Double x)` where the type parameter `T` is `Double` (the
-boxed type), not the primitive `double`. Every call produces two heap
-allocations — one for argument boxing and one for the return value.
-Calling this from any thread that shares a GC with the hot path can
-trigger a minor collection at the worst possible moment.
-
-finmath-lib fills the gap for Black-Scholes on the warm path. Its
-`AnalyticFormulas` class implements standard B-S option pricing and
-implied-vol Newton iteration using only primitive `double` arithmetic —
-all method signatures accept and return `double`, no generics, no
-boxing, near-zero-GC. `VolSurfaceCalibrator` uses `AnalyticFormulas` to
-fit the implied-vol surface to quoted HKEX option prices on a 30-second
-schedule.
-
-For the cold path — Monte Carlo VaR and full-Greeks position sizing —
-finmath-lib's Monte Carlo engine allocates `RandomVariable[]` arrays
-and `double[]` path arrays extensively. This is acceptable because the
-cold path runs offline, never on any thread sharing execution time with
-the hot path. Results feed into strategy configuration as position size
-limits, not per-tick decisions.
+---
 
 ### Vert.x for the Web Gateway
 
-`arb-web-gateway` bridges the zero-copy Aeron binary bus to WebSocket
-JSON for the operator dashboard. Vert.x's non-blocking event-loop model
-maps naturally to this requirement: a single verticle thread handles all
-incoming WebSocket connections, message fan-out, and Aeron poll callbacks
-through a single-threaded I/O loop driven by Netty. There are no
-blocking operations on the Vert.x event loop — Aeron polling is a
-non-blocking `poll()` call returning zero when no messages are available,
-and WebSocket writes are queued to Netty's write buffer without blocking.
+**Chosen for:** non-blocking event-loop that bridges the Aeron binary bus to WebSocket JSON without touching any trading thread.
 
-Embedding a WebSocket server directly in `arb-strategy` was rejected
-because it would couple operator latency to the trading thread. A slow
-WebSocket client — a reconnecting browser, a slow network — would apply
-back-pressure to the same event loop that handles `onMarketData`
-callbacks, potentially adding milliseconds of jitter to the hot path.
-Vert.x in a separate container with its own JVM ensures that no amount
-of dashboard activity can influence the trading process's latency.
+- **Single verticle thread:** handles all WebSocket connections, message fan-out, and Aeron poll callbacks through one I/O loop (Netty-backed) — no blocking operations anywhere
+- **Process isolation:** separate container/JVM guarantees that a slow browser client or reconnecting dashboard cannot apply back-pressure to the `onMarketData()` hot path
 
-### React 18, Vite, Tailwind CSS, Shadcn/UI, and Recharts
+**Why not embedding WebSocket in `arb-strategy`:** slow clients would back-pressure the same event loop as strategy callbacks, potentially adding milliseconds of jitter to the hot path
 
-The operator dashboard is a React 18 single-page application served by
-Nginx in production. Vite is chosen over Create React App or webpack
-because its native ES-module dev server provides near-instantaneous
-hot-module replacement even with TypeScript type-checking, which is a
-meaningful advantage when tuning chart refresh rates and real-time
-layout. React 18's concurrent rendering mode allows the P&L area chart
-and the order book table to update from the same WebSocket data stream
-without one update blocking the other's render cycle.
+---
 
-Tailwind CSS utility classes are used exclusively — no CSS-in-JS library
-is introduced. Runtime style injection (styled-components, Emotion) adds
-JavaScript work on every component render: generating a class-name hash,
-inserting a `<style>` tag into the DOM, and applying the style. On a
-dashboard refreshing P&L data every second across multiple chart
-components, this overhead is measurable. Tailwind generates a static CSS
-file at build time; component renders involve only class-name string
-concatenation at the React level with no DOM mutation.
+### React 18, Vite, Tailwind CSS, Shadcn/UI, Recharts
 
-Shadcn/UI provides accessible, unstyled component primitives — cards,
-tables, switch toggles, dialogs — copied directly into the project source
-tree at `arb-dashboard/src/components/ui/`. Because Shadcn components
-are plain TypeScript source, not a runtime library dependency, they carry
-no bundle overhead beyond what they actually use. Material-UI, Chakra,
-and Ant Design are excluded because they import entire component graphs
-with their own animation and theming runtimes.
+**Chosen for:** a fast, zero-runtime-overhead operator cockpit with real-time chart rendering.
 
-Recharts renders charts as SVG using React's virtual DOM, meaning chart
-data updates go through React's normal reconciliation path. For the
-latency histogram and basis spread line chart — updating at 1-second
-intervals with small data deltas — React's diffing is efficient and
-avoids the full canvas repaints that Canvas-based libraries perform on
-every update. Zustand manages global state with fine-grained
-subscriptions that limit re-renders to components that actually consume
-the updated data slice.
+- **React 18 concurrent rendering:** P&L area chart and order book update from the same WebSocket stream without one render blocking the other
+- **Vite:** native ES-module dev server, near-instantaneous HMR with TypeScript (vs. webpack's full bundle recompile)
+- **Tailwind CSS:** static CSS generated at build time — no runtime style injection, no DOM mutation per render (vs. styled-components/Emotion which hash and insert `<style>` tags on every render)
+- **Shadcn/UI:** component primitives copied as plain TypeScript source into `src/components/ui/` — no runtime library dependency, zero bundle overhead beyond actual usage; Material-UI / Chakra / Ant Design excluded for importing entire component graphs with animation and theming runtimes
+- **Recharts (SVG via React vDOM):** chart updates go through React's normal reconciliation — efficient diffing for 1s-interval data deltas vs. full canvas repaints of Canvas-based libraries
+- **Zustand:** fine-grained subscriptions — only components that consume an updated data slice re-render
+
+---
 
 ### H2 for the Web Gateway Audit Log
 
-The web gateway uses H2 as an embedded RDBMS for a lightweight audit log
-of WebSocket messages and control events. A full PostgreSQL deployment
-adds a network round-trip, a separate service lifecycle, connection pool
-management, and a shared-nothing dependency that can block gateway
-startup. For an audit log that is append-only, single-writer, and
-accessed only through the gateway JVM, H2's embedded mode is the correct
-tradeoff: it runs in the same process, persists to a local file, and
-exposes the standard JDBC API without a network socket.
+**Chosen for:** embedded RDBMS with zero network overhead for an append-only, single-writer audit log.
 
-Chronicle Map or Chronicle Queue would be the zero-GC upgrade path for
-this layer if the audit log ever moved onto a latency-sensitive thread.
-Chronicle's off-heap memory-mapped files support sub-microsecond
-persistence without touching the GC. That level of performance is not
-required here because the gateway is explicitly outside the trading
-thread's latency budget.
+- Runs in the same JVM process as `arb-web-gateway` — no network socket, no separate service lifecycle
+- Standard JDBC API, persists to a local file
+- **Chronicle Map / Chronicle Queue:** zero-GC upgrade path if the audit log ever moves onto a latency-sensitive thread (off-heap memory-mapped files, sub-µs persistence) — not required today as the gateway is outside the trading thread's latency budget
+
+**Why not PostgreSQL:** network round-trip + separate service lifecycle + connection pool management for a use case that is append-only and single-writer
+
+---
 
 ### Docker Compose with `ipc: host`
 
-Aeron IPC over `/dev/shm` requires that all communicating processes share
-the same POSIX IPC namespace. Docker containers run in isolated namespaces
-by default — a `/dev/shm` memory segment created by one container is
-invisible to another. The `ipc: host` setting in `docker-compose.yml`
-places all trading-process containers (`arb-market-data`, `arb-gambit`,
-`arb-strategy`, `arb-execution`, `arb-web-gateway`) into the host's IPC
-namespace, restoring shared-memory visibility. Without this, Aeron's
-`MediaDriver` cannot map the same shared-memory file in both publisher
-and subscriber address spaces, and all `Publication.offer()` calls
-silently drop messages.
+**Chosen for:** restoring shared POSIX IPC namespace so Aeron `/dev/shm` ring buffers are visible across all trading containers.
 
-The alternative — using Aeron over UDP (`aeron:udp`) between containers
-on the same host — traverses the kernel network stack twice per message,
-even for loopback traffic, adding several microseconds per hop. Given
-that the entire hot-path budget from tick receipt to `FvUpdate`
-publication is under 10µs, spending 3–5µs on inter-container transport
-would consume more than half the budget on infrastructure overhead alone.
+- Docker containers run in isolated IPC namespaces by default — a `/dev/shm` segment created by one container is invisible to another
+- `ipc: host` places all trading containers (`arb-market-data`, `arb-gambit`, `arb-strategy`, `arb-execution`, `arb-web-gateway`) in the host's IPC namespace
+- Without it: `MediaDriver` cannot map the same shared-memory file in both publisher and subscriber → `Publication.offer()` silently drops all messages
+
+**Why not Aeron UDP between containers:** kernel network stack traversal adds 3–5µs per hop even on loopback — would consume more than half the 10µs hot-path budget on infrastructure overhead alone
 
 ---
 
