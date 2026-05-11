@@ -40,6 +40,7 @@ public final class ExecutionMain {
         // 4. Shutdown hook
         Runtime.getRuntime().addShutdownHook(Thread.ofPlatform().name("shutdown").unstarted(() -> {
             System.out.println("[execution] Shutting down...");
+            connector.close();
             aeron.close();
         }));
 
@@ -47,6 +48,7 @@ public final class ExecutionMain {
         System.out.println("[execution] RiskGateway poll loop starting...");
         while (!Thread.currentThread().isInterrupted()) {
             orderSub.poll(riskGateway::onFragment);
+            connector.drainPending();
         }
     }
 }

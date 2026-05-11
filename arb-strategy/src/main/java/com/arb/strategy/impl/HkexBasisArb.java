@@ -36,6 +36,10 @@ public final class HkexBasisArb implements Strategy {
     // Local basket ID counter (monotonic, strategy-scoped)
     private long basketCounter = 0L;
 
+    // 25-second cooldown — one basket per arb window
+    private long lastSignalNs = 0L;
+    private static final long COOLDOWN_NS = 25_000_000_000L;
+
     public HkexBasisArb(final long entryThreshBps100,
                         final long exitThreshBps100,
                         final long lotSize,
@@ -79,6 +83,10 @@ public final class HkexBasisArb implements Strategy {
 
         final String sym = decodeSym();
         if (!sym.startsWith("HSI")) return;
+
+        final long nowNs = System.nanoTime();
+        if (nowNs - lastSignalNs < COOLDOWN_NS) return; // still in cooldown
+        lastSignalNs = nowNs;
 
         if (bps <= exitThreshBps100) {
             return;

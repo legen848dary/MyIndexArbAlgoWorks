@@ -5,22 +5,21 @@ import com.arb.sbe.*;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.*;
 
 /**
- * Simulates an exchange connector on the hot path.
+ * Simulates an exchange connector with async delayed fills.
  *
  * <p>For each accepted order:
  * <ol>
- *   <li>Busy-spins for a configurable latency window (default 10–50 μs) to simulate
- *       network + matching-engine round-trip.</li>
- *   <li>Publishes a {@code FILLED OrderUpdate} to {@code ORDER_UPDATE_STREAM} (1003).</li>
+ *   <li>Schedules a fill to arrive 5–10 seconds later (simulates network + matching-engine round-trip).</li>
+ *   <li>Publishes a {@code FILLED OrderUpdate} to {@code ORDER_UPDATE_STREAM} (1003) via {@link #drainPending()}.</li>
  * </ol>
  *
  * <p>All encoder instances are pre-allocated (zero-GC on the hot path).
  *
  * <h3>Testing</h3>
- * Inject {@code minLatencyNs=0, maxLatencyNs=0} to skip busy-spin in unit tests.
+ * Inject {@code minLatencyNs=0, maxLatencyNs=0} (unused in async mode) or subclass for unit tests.
  */
 public class MockExchangeConnector {
 
@@ -32,6 +31,9 @@ public class MockExchangeConnector {
     private final UnsafeBuffer            txBuffer;
     private final MessageHeaderEncoder    headerEncoder;
     private final OrderUpdateEncoder      updateEncoder;
+    private final ConcurrentLinkedQueue<Runnable> pendingFills = new ConcurrentLinkedQueue<>();
+    private final ScheduledExecutorService fillTimer = Executors.newSingleThreadScheduledExecutor(
+        r -> Thread.ofPlatform().name("fill-timer").daemon(true).unstarted(r));
 
     public MockExchangeConnector(final AeronPublisher publisher,
                                  final long minLatencyNs,
@@ -60,15 +62,28 @@ public class MockExchangeConnector {
                      final long fillQty,
                      final long basketId,
                      final short legIndex) {
-        simulateLatency();
-        System.out.printf("[FILL] orderId=%d basketId=%d leg=%d %s %s qty=%d @%d%n",
-            orderId, basketId, legIndex, symbol, side.name(), fillQty, fillPrice);
-        publishUpdate(orderId, symbol, side, fillPrice, fillQty,
-                      OrderStatus.FILLED, (short) 0, basketId, legIndex);
+        final long delayMs = 5_000L + ThreadLocalRandom.current().nextLong(5_001L);
+        System.out.printf("[FILL-SCHEDULED] orderId=%d basketId=%d leg=%d %s %s qty=%d — fills in %dms%n",
+            orderId, basketId, legIndex, symbol, side.name(), fillQty, delayMs);
+        fillTimer.schedule(() -> pendingFills.offer(() -> {
+            System.out.printf("[FILL] orderId=%d basketId=%d leg=%d %s %s qty=%d @%d%n",
+                orderId, basketId, legIndex, symbol, side.name(), fillQty, fillPrice);
+            publishUpdate(orderId, symbol, side, fillPrice, fillQty, OrderStatus.FILLED, (short) 0, basketId, legIndex);
+        }), delayMs, TimeUnit.MILLISECONDS);
+    }
+
+    /** Drain pending fills onto the calling thread. Call from the execution poll loop. */
+    public void drainPending() {
+        Runnable task;
+        while ((task = pendingFills.poll()) != null) task.run();
+    }
+
+    public void close() {
+        fillTimer.shutdownNow();
     }
 
     /**
-     * Publish a rejection notification (no latency simulation — risk reject is immediate).
+     * Publish a rejection notification (no delay — risk reject is immediate).
      *
      * @param rejectCode 1=fat_finger_qty, 2=fat_finger_price, 3=position_limit
      */
@@ -81,15 +96,6 @@ public class MockExchangeConnector {
         System.out.printf("[REJECT] orderId=%d basketId=%d leg=%d %s code=%d%n",
             orderId, basketId, legIndex, symbol, rejectCode);
         publishUpdate(orderId, symbol, side, 0L, 0L, OrderStatus.REJECTED, rejectCode, basketId, legIndex);
-    }
-
-    private void simulateLatency() {
-        if (maxLatencyNs <= 0) return;
-        final long range    = maxLatencyNs - minLatencyNs;
-        final long jitter   = range > 0 ? ThreadLocalRandom.current().nextLong(range) : 0L;
-        final long deadline = System.nanoTime() + minLatencyNs + jitter;
-        //noinspection StatementWithEmptyBody
-        while (System.nanoTime() < deadline) { /* busy-spin: simulates exchange round-trip */ }
     }
 
     private void publishUpdate(final long orderId,
