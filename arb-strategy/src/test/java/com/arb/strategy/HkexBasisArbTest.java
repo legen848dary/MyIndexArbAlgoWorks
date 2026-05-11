@@ -23,8 +23,8 @@ class HkexBasisArbTest {
         Side    side  = null;
         @Override
         public void send(String symbol, Side s, long price, long qty, OrderType orderType) {
+            if (!fired) side = s;
             fired = true;
-            side  = s;
         }
     }
 

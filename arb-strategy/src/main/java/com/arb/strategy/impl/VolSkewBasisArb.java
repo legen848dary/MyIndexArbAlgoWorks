@@ -52,6 +52,8 @@ public final class VolSkewBasisArb implements Strategy {
         int slen = SYM_LEN;
         while (slen > 0 && symBuf[slen - 1] == 0) slen--;
         final String sym = new String(symBuf, 0, slen, StandardCharsets.US_ASCII);
+        System.out.printf("[ARB SIGNAL] VolSkewBasisArb: basis=%.2f BPS > adaptiveThresh=%.2f BPS (IV=%.2f%%, RV=%.2f%%)%n",
+            bps / 100.0, adaptiveThreshBps100 / 100.0, iv / 10000.0, rv / 10000.0);
         orders.send(sym, Side.SELL, fv.futuresFv(), lots, OrderType.LIMIT);
     }
 

@@ -33,6 +33,7 @@ public final class HkCnIndexPairArb implements Strategy {
 
     private long hkPrice = 0L;
     private long cnPrice = 0L;
+    private long basketCounter = 0L;
 
     public HkCnIndexPairArb(final String hkSymbol,
                              final String cnSymbol,
@@ -69,10 +70,15 @@ public final class HkCnIndexPairArb implements Strategy {
         final long zScore100 = sigma > 0L ? (spread - mean) * 100L / sigma : 0L;
         if (Math.abs(zScore100) < exitZScore100) return;
         if (Math.abs(zScore100) > entryZScore100) {
+            final Side hkSide = zScore100 > 0L ? Side.SELL : Side.BUY;
+            final Side cnSide = zScore100 > 0L ? Side.BUY  : Side.SELL;
+            final long basketId = ++basketCounter;
+            System.out.printf("[ARB SIGNAL] HkCnIndexPairArb: z=%.2f (entry=%.2f) basketId=%d → %s %s / %s %s%n",
+                zScore100 / 100.0, entryZScore100 / 100.0, basketId,
+                hkSide.name(), hkSymbol, cnSide.name(), cnSymbol);
             // BUY the underperformer, SELL the outperformer
-            orders.send(hkSymbol,
-                    zScore100 > 0L ? Side.SELL : Side.BUY,
-                    hkPrice, 1L, OrderType.LIMIT);
+            orders.sendLeg(basketId, 1, hkSymbol, hkSide, hkPrice, 1L, OrderType.LIMIT);
+            orders.sendLeg(basketId, 2, cnSymbol, cnSide, cnPrice, 1L, OrderType.LIMIT);
         }
     }
 

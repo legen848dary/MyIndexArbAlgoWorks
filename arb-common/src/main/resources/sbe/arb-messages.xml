@@ -80,6 +80,8 @@
         <field name="qty"       id="4" type="int64"       description="Quantity"/>
         <field name="orderType" id="5" type="OrderType"   description="MARKET or LIMIT"/>
         <field name="orderId"   id="6" type="int64"       description="Unique order ID for correlation (monotonic counter)"/>
+        <field name="basketId"  id="7" type="int64"       description="Basket ID grouping legs (0=standalone order)"/>
+        <field name="legIndex"  id="8" type="uint8"       description="Leg index: 0=standalone, 1=first leg (futures/ETF), 2=second leg (constituent basket)"/>
     </sbe:message>
 
     <!--
@@ -162,6 +164,8 @@
         <field name="status"     id="6" type="OrderStatus" description="FILLED / PARTIAL_FILL / REJECTED / CANCELLED"/>
         <field name="rejectCode" id="7" type="uint8"       description="Risk rejection code: 0=none 1=fat_finger 2=position_limit"/>
         <field name="timestamp"  id="8" type="int64"       description="Epoch nanoseconds"/>
+        <field name="basketId"   id="9"  type="int64"      description="Basket ID from originating OrderRequest (0 if standalone)"/>
+        <field name="legIndex"   id="10" type="uint8"      description="Leg index matching the OrderRequest (0 if standalone)"/>
     </sbe:message>
 
 </sbe:messageSchema>

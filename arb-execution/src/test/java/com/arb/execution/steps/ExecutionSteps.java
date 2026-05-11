@@ -21,8 +21,8 @@ public class ExecutionSteps {
         final AtomicBoolean rejectCalled = new AtomicBoolean(false);
         final AtomicInteger rejectCode   = new AtomicInteger(0);
         CaptureConnector() { super(null, 0, 0); }
-        @Override public void fill(long id, String sym, Side s, long p, long q)    { fillCalled.set(true); }
-        @Override public void reject(long id, String sym, Side s, short code) { rejectCalled.set(true); rejectCode.set(code); }
+        @Override public void fill(long id, String sym, Side s, long p, long q, long basketId, short legIndex) { fillCalled.set(true); }
+        @Override public void reject(long id, String sym, Side s, short code, long basketId, short legIndex) { rejectCalled.set(true); rejectCode.set(code); }
     }
 
     static class CountingSink implements OrderSink {

@@ -16,12 +16,14 @@ public class MockExchangeConnectorTest {
         CaptureMockConnector() { super(null, 0L, 0L); }
 
         @Override
-        public void fill(long orderId, String symbol, Side side, long fillPrice, long fillQty) {
+        public void fill(long orderId, String symbol, Side side, long fillPrice, long fillQty,
+                         long basketId, short legIndex) {
             fillPublished.set(true);
         }
 
         @Override
-        public void reject(long orderId, String symbol, Side side, short rejectCode) {
+        public void reject(long orderId, String symbol, Side side, short rejectCode,
+                           long basketId, short legIndex) {
             rejectPublished.set(true);
         }
     }
@@ -29,14 +31,14 @@ public class MockExchangeConnectorTest {
     @Test
     void fill_marksFilledTrue() {
         final CaptureMockConnector c = new CaptureMockConnector();
-        c.fill(1L, "HSI.HK", Side.SELL, 190_000_0000L, 10L);
+        c.fill(1L, "HSI.HK", Side.SELL, 190_000_0000L, 10L, 0L, (short) 0);
         assertTrue(c.fillPublished.get());
     }
 
     @Test
     void reject_marksRejectedTrue() {
         final CaptureMockConnector c = new CaptureMockConnector();
-        c.reject(2L, "MHI.HK", Side.BUY, (short) 1);
+        c.reject(2L, "MHI.HK", Side.BUY, (short) 1, 0L, (short) 0);
         assertTrue(c.rejectPublished.get());
     }
 }

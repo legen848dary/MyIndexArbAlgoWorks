@@ -14,23 +14,8 @@ import java.nio.ByteBuffer;
 
 /**
  * Single-threaded deterministic event loop — the heart of the strategy engine.
- *
- * <h3>Threading model</h3>
- * <ul>
- *   <li>Reads from {@code MARKET_DATA_CHANNEL} (stream {@link Channels#MARKET_DATA_STREAM}).</li>
- *   <li>Decodes each SBE frame using pre-allocated flyweight decoders (zero heap allocation).</li>
- *   <li>Dispatches to the registered {@link Strategy}.</li>
- *   <li>Strategy signals orders via {@link OrderSink}; the sequencer encodes them as
- *       {@code OrderRequest} SBE messages and publishes to {@code ORDER_CHANNEL}.</li>
- * </ul>
- *
- * <p>All encoder/decoder instances are fields (never re-allocated). The {@link OrderSink}
- * implementation is a pre-allocated lambda field — no closure allocation on each message.
  */
 public final class ArbSequencer implements AutoCloseable {
-
-    private static final int ORDER_MSG_LENGTH =
-        MessageHeaderEncoder.ENCODED_LENGTH + OrderRequestEncoder.BLOCK_LENGTH;
 
     // ── Aeron I/O ────────────────────────────────────────────────────────────
     private final AeronSubscriber subscriber;
@@ -50,11 +35,9 @@ public final class ArbSequencer implements AutoCloseable {
         new UnsafeBuffer(ByteBuffer.allocateDirect(256));
 
     private volatile boolean running = false;
+    private long nextOrderId  = 0L;
+    private long nextBasketId = 1L; // basket IDs start at 1 (0 = standalone)
 
-    /** Monotonically increasing order ID for correlation with execution updates. */
-    private long nextOrderId = 0L;
-
-    /** Pre-allocated OrderSink — encodes OrderRequest and publishes to ORDER_CHANNEL. */
     private final OrderSink orderSink;
 
     public ArbSequencer(
@@ -65,24 +48,37 @@ public final class ArbSequencer implements AutoCloseable {
         this.subscriber = subscriber;
         this.publisher  = publisher;
         this.strategy   = strategy;
-        // Initialised after publisher is set so the lambda captures an initialised final field
-        this.orderSink = (symbol, side, price, qty, orderType) ->
-            publisher.publish(
-                txBuffer, 0,
-                (int) orderEncoder.wrapAndApplyHeader(txBuffer, 0, headerEncoder)
+        this.orderSink  = new OrderSink() {
+            @Override
+            public void send(final String symbol, final Side side, final long price, final long qty, final OrderType orderType) {
+                sendLeg(0L, 0, symbol, side, price, qty, orderType);
+            }
+
+            @Override
+            public void sendLeg(final long basketId, final int legIndex, final String symbol, final Side side, final long price, final long qty, final OrderType orderType) {
+                final long orderId = nextOrderId++;
+                final int msgLen = (int) orderEncoder.wrapAndApplyHeader(txBuffer, 0, headerEncoder)
                     .symbol(symbol)
                     .side(side)
                     .price(price)
                     .qty(qty)
                     .orderType(orderType)
-                    .orderId(nextOrderId++)
-                    .encodedLength() + MessageHeaderEncoder.ENCODED_LENGTH
-            );
+                    .orderId(orderId)
+                    .basketId(basketId)
+                    .legIndex((short) legIndex)
+                    .encodedLength() + MessageHeaderEncoder.ENCODED_LENGTH;
+                publisher.publish(txBuffer, 0, msgLen);
+                System.out.printf("[SEQ] orderId=%d basketId=%d leg=%d %s %s qty=%d price=%d%n",
+                    orderId, basketId, legIndex, symbol, side.name(), qty, price);
+            }
+        };
     }
 
-    /**
-     * Start the event loop on the calling thread. Blocks until {@link #stop()} is called.
-     */
+    /** Returns a new unique basket ID for grouping a multi-leg trade. */
+    public long allocateBasketId() {
+        return nextBasketId++;
+    }
+
     public void start() {
         running = true;
         while (running) {
@@ -90,16 +86,10 @@ public final class ArbSequencer implements AutoCloseable {
         }
     }
 
-    /** Signal the event loop to exit cleanly. */
     public void stop() {
         running = false;
     }
 
-    /**
-     * Fragment handler — called by Aeron per decoded frame.
-     * All paths are zero-allocation: decoders are flyweights; orderSink is a pre-allocated field.
-     * Dispatches by SBE templateId to the appropriate Strategy method.
-     */
     private void onFragment(
         final DirectBuffer buffer,
         final int          offset,
@@ -134,7 +124,7 @@ public final class ArbSequencer implements AutoCloseable {
                 strategy.onFvUpdate(fvDecoder, orderSink);
                 break;
             default:
-                break; // unknown templateId — skip silently
+                break;
         }
     }
 

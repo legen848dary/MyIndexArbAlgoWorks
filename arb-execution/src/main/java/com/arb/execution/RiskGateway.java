@@ -67,6 +67,8 @@ public final class RiskGateway {
         final Side side    = orderDecoder.side();
         final long price   = orderDecoder.price();
         final long qty     = orderDecoder.qty();
+        final long basketId  = orderDecoder.basketId();
+        final short legIndex = orderDecoder.legIndex();
 
         orderDecoder.getSymbol(symBuf, 0);
         int slen = SYM_LEN;
@@ -75,7 +77,7 @@ public final class RiskGateway {
 
         // Check 1: fat-finger quantity
         if (qty > config.maxQtyPerOrderLots) {
-            connector.reject(orderId, symbol, side, REJECT_FAT_FINGER_QTY);
+            connector.reject(orderId, symbol, side, REJECT_FAT_FINGER_QTY, basketId, legIndex);
             return;
         }
 
@@ -85,7 +87,7 @@ public final class RiskGateway {
             if (lastPrice != Long.MIN_VALUE && lastPrice > 0) {
                 final long devBps100 = Math.abs(price - lastPrice) * 10_000L * 100L / lastPrice;
                 if (devBps100 > config.maxPriceDeviationBps100) {
-                    connector.reject(orderId, symbol, side, REJECT_FAT_FINGER_PRICE);
+                    connector.reject(orderId, symbol, side, REJECT_FAT_FINGER_PRICE, basketId, legIndex);
                     return;
                 }
             }
@@ -94,14 +96,14 @@ public final class RiskGateway {
         // Check 3: position limit
         final long positionDelta = side == Side.BUY ? qty : -qty;
         if (!positions.isWithinLimit(symbol, positionDelta, config.maxNetPositionLots)) {
-            connector.reject(orderId, symbol, side, REJECT_POSITION_LIMIT);
+            connector.reject(orderId, symbol, side, REJECT_POSITION_LIMIT, basketId, legIndex);
             return;
         }
 
         // All checks passed — update position book and forward to exchange
         positions.applyDelta(symbol, positionDelta);
         lastPrices.put(symbol, price);
-        connector.fill(orderId, symbol, side, price, qty);
+        connector.fill(orderId, symbol, side, price, qty, basketId, legIndex);
     }
 
     /**

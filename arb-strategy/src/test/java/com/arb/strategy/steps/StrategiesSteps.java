@@ -39,8 +39,8 @@ public class StrategiesSteps {
         @Override
         public void send(final String symbol, final Side s,
                          final long price, final long qty, final OrderType orderType) {
+            if (!fired) side = s;
             fired = true;
-            side  = s;
         }
     }
 

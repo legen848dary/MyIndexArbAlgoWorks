@@ -42,8 +42,10 @@ public final class MhiHsiBasisArb implements Strategy {
         final long spread       = hsiPriceScaled4 - 5L * mhiPriceScaled4;
         final long spreadBps100 = Math.abs(spread) * 10_000L * 100L / hsiPriceScaled4;
         if (spreadBps100 > threshBps100) {
-            orders.send("MHI.HK", spread > 0 ? Side.BUY : Side.SELL,
-                    mhiPriceScaled4, 1L, OrderType.LIMIT);
+            final Side side = spread > 0 ? Side.BUY : Side.SELL;
+            System.out.printf("[ARB SIGNAL] MhiHsiBasisArb: spread=%.4f (threshold=%.4f) → %s%n",
+                spread / 10000.0, threshBps100 / 10000.0, side.name());
+            orders.send("MHI.HK", side, mhiPriceScaled4, 1L, OrderType.LIMIT);
         }
     }
 

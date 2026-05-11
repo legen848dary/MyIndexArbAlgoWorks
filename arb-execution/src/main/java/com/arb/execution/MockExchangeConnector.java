@@ -57,10 +57,14 @@ public class MockExchangeConnector {
                      final String symbol,
                      final Side side,
                      final long fillPrice,
-                     final long fillQty) {
+                     final long fillQty,
+                     final long basketId,
+                     final short legIndex) {
         simulateLatency();
+        System.out.printf("[FILL] orderId=%d basketId=%d leg=%d %s %s qty=%d @%d%n",
+            orderId, basketId, legIndex, symbol, side.name(), fillQty, fillPrice);
         publishUpdate(orderId, symbol, side, fillPrice, fillQty,
-                      OrderStatus.FILLED, (short) 0);
+                      OrderStatus.FILLED, (short) 0, basketId, legIndex);
     }
 
     /**
@@ -71,8 +75,12 @@ public class MockExchangeConnector {
     public void reject(final long orderId,
                        final String symbol,
                        final Side side,
-                       final short rejectCode) {
-        publishUpdate(orderId, symbol, side, 0L, 0L, OrderStatus.REJECTED, rejectCode);
+                       final short rejectCode,
+                       final long basketId,
+                       final short legIndex) {
+        System.out.printf("[REJECT] orderId=%d basketId=%d leg=%d %s code=%d%n",
+            orderId, basketId, legIndex, symbol, rejectCode);
+        publishUpdate(orderId, symbol, side, 0L, 0L, OrderStatus.REJECTED, rejectCode, basketId, legIndex);
     }
 
     private void simulateLatency() {
@@ -90,7 +98,9 @@ public class MockExchangeConnector {
                                 final long fillPrice,
                                 final long fillQty,
                                 final OrderStatus status,
-                                final short rejectCode) {
+                                final short rejectCode,
+                                final long basketId,
+                                final short legIndex) {
         if (publisher == null) return; // test subclass with null publisher
         final int msgLen = (int) updateEncoder.wrapAndApplyHeader(txBuffer, 0, headerEncoder)
             .orderId(orderId)
@@ -101,6 +111,8 @@ public class MockExchangeConnector {
             .status(status)
             .rejectCode(rejectCode)
             .timestamp(System.nanoTime())
+            .basketId(basketId)
+            .legIndex(legIndex)
             .encodedLength() + MessageHeaderEncoder.ENCODED_LENGTH;
 
         publisher.publish(txBuffer, 0, msgLen);

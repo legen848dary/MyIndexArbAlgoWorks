@@ -47,6 +47,8 @@ public final class CrossBorderEtfArb implements Strategy {
         if (navCnh == 0L) return;
         final long cnhBasis = (fv.futuresFv() - navCnh) * 1_000_000L / navCnh;
         if (cnhBasis > threshBps100) {
+            System.out.printf("[ARB SIGNAL] CrossBorderEtfArb: %s CNH basis=%.2f BPS > threshold=%.2f BPS (nav=%d fxRate=%d)%n",
+                etfSymbol, cnhBasis / 100.0, threshBps100 / 100.0, nav, fxRate);
             orders.send(etfSymbol, Side.SELL, fv.futuresFv(), 1L, OrderType.LIMIT);
         }
     }

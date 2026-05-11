@@ -62,6 +62,8 @@ public final class SsfBasisArb implements Strategy {
         final long spread = (ssfPrice - spotPrice) * 10_000L * 100L / spotPrice;
         if (spread > carryBps100 + bufferBps100) {
             final long lots = maxLots.getAcquire();
+            System.out.printf("[ARB SIGNAL] SsfBasisArb: SSF spread=%.2f BPS > carry(%.2f)+buffer(%.2f) → SELL SSF%n",
+                spread / 100.0, carryBps100 / 100.0, bufferBps100 / 100.0);
             orders.send(ssfSymbol, Side.SELL, ssfPrice, lots, OrderType.LIMIT);
         }
     }

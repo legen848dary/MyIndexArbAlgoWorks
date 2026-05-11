@@ -23,12 +23,14 @@ public class RiskGatewayTest {
         }
 
         @Override
-        public void fill(long orderId, String symbol, Side side, long fillPrice, long fillQty) {
+        public void fill(long orderId, String symbol, Side side, long fillPrice, long fillQty,
+                         long basketId, short legIndex) {
             fillCalled.set(true);
         }
 
         @Override
-        public void reject(long orderId, String symbol, Side side, short code) {
+        public void reject(long orderId, String symbol, Side side, short code,
+                           long basketId, short legIndex) {
             rejectCalled.set(true);
             rejectCode.set(code);
         }

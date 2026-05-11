@@ -60,9 +60,11 @@ public final class SsfCalendarSpreadArb implements Strategy {
         final long observedSpread    = farPrice - nearPrice;
         final long sigma             = spreadSigmaBps100.getAcquire();
         if (Math.abs(observedSpread - theoreticalSpread) > sigmaMultiplier * sigma) {
-            orders.send(nearSymbol,
-                    observedSpread > theoreticalSpread ? Side.SELL : Side.BUY,
-                    nearPrice, 1L, OrderType.LIMIT);
+            final Side side = observedSpread > theoreticalSpread ? Side.SELL : Side.BUY;
+            System.out.printf("[ARB SIGNAL] SsfCalendarSpreadArb: obs=%.4f theo=%.4f delta=%.4f > %d×sigma → %s%n",
+                observedSpread / 10000.0, theoreticalSpread / 10000.0,
+                Math.abs(observedSpread - theoreticalSpread) / 10000.0, sigmaMultiplier, side.name());
+            orders.send(nearSymbol, side, nearPrice, 1L, OrderType.LIMIT);
         }
     }
 
