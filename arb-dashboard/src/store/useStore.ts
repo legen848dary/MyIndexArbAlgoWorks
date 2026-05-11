@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { MarketDataMsg, FvUpdateMsg, OrderUpdateMsg, SystemEventMsg } from '../types/messages'
+import type { MarketDataMsg, FvUpdateMsg, OrderUpdateMsg, SystemEventMsg, SimulationStatusMsg } from '../types/messages'
 
 export interface PricePoint {
   ts: number
@@ -42,6 +42,13 @@ interface AppState {
   // System events (last 50)
   events: SystemEventMsg[]
   handleSystemEvent: (msg: SystemEventMsg) => void
+
+  // Simulation state
+  simRunning: boolean
+  simProfile: string
+  simPhase: string
+  simTickCount: number
+  handleSimulationStatus: (msg: SimulationStatusMsg) => void
 
   // Dark mode
   darkMode: boolean
@@ -103,6 +110,17 @@ export const useStore = create<AppState>()((set) => ({
   events: [],
   handleSystemEvent: (msg) =>
     set((s) => ({ events: [msg, ...s.events].slice(0, 50) })),
+
+  simRunning: false,
+  simProfile: 'HKEX_BASIS_ARB',
+  simPhase: 'STEADY',
+  simTickCount: 0,
+  handleSimulationStatus: (msg) => set({
+    simRunning: msg.running,
+    simProfile: msg.profile,
+    simPhase: msg.phase,
+    simTickCount: msg.tickCount,
+  }),
 
   darkMode: true,
   toggleDarkMode: () =>

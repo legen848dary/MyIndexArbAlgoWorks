@@ -1,10 +1,11 @@
 import { cn } from '@/lib/utils'
 import React from 'react'
 
-type Variant = 'default' | 'success' | 'destructive' | 'warning'
+type Variant = 'default' | 'secondary' | 'success' | 'destructive' | 'warning'
 
 const variants: Record<Variant, string> = {
   default:     'bg-primary text-primary-foreground',
+  secondary:   'bg-secondary text-secondary-foreground',
   success:     'bg-green-500 text-white dark:bg-green-600',
   destructive: 'bg-destructive text-destructive-foreground',
   warning:     'bg-yellow-500 text-white dark:bg-yellow-600',

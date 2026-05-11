@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useStore } from './store/useStore'
 import { useWebSocket } from './hooks/useWebSocket'
 import { LiveMonitor } from './components/LiveMonitor'
@@ -5,12 +6,22 @@ import { OrderBook } from './components/OrderBook'
 import { ControlPanel } from './components/ControlPanel'
 import { SystemHealth } from './components/SystemHealth'
 import { PnlPanel } from './components/PnlPanel'
+import { TradesPage } from './components/TradesPage'
 import { Moon, Sun } from 'lucide-react'
 import { Button } from './components/ui/button'
+
+const TABS = [
+  { id: 'monitor', label: '📈 Monitor' },
+  { id: 'trades',  label: '🔄 Trades'  },
+  { id: 'orders',  label: '📋 Orders'  },
+  { id: 'health',  label: '🩺 Health'  },
+  { id: 'pnl',     label: '💰 P&L'     },
+]
 
 export default function App() {
   const { darkMode, toggleDarkMode, connected } = useStore()
   const { send } = useWebSocket()
+  const [activeTab, setActiveTab] = useState('monitor')
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -32,23 +43,43 @@ export default function App() {
             </Button>
           </div>
         </div>
+
+        {/* Tab Navigation */}
+        <div className="mx-auto max-w-screen-xl px-4">
+          <nav className="flex gap-1 pb-0">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
       </header>
 
-      {/* Main Grid */}
+      {/* Main Content */}
       <main className="mx-auto max-w-screen-xl px-4 py-6">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {/* LiveMonitor spans 2 cols on large screens */}
-          <div className="lg:col-span-2">
-            <LiveMonitor />
+        <div className="flex gap-4">
+          {/* Left: main content area */}
+          <div className="flex-1 min-w-0">
+            {activeTab === 'monitor' && <LiveMonitor />}
+            {activeTab === 'trades'  && <TradesPage />}
+            {activeTab === 'orders'  && <OrderBook />}
+            {activeTab === 'health'  && <SystemHealth />}
+            {activeTab === 'pnl'     && <PnlPanel />}
           </div>
-          {/* System Health */}
-          <SystemHealth />
-          {/* Order Book */}
-          <OrderBook />
-          {/* P&L Panel */}
-          <PnlPanel />
-          {/* Control Panel */}
-          <ControlPanel send={send} />
+
+          {/* Right sidebar: always-visible ControlPanel */}
+          <div className="w-72 flex-shrink-0">
+            <ControlPanel send={send} />
+          </div>
         </div>
       </main>
     </div>
