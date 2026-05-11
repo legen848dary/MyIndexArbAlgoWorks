@@ -28,8 +28,13 @@ public final class RiskConfig {
         this.maxNetPositionLots       = maxNetPositionLots;
     }
 
-    /** Default prototype config: 500 lots max, 10% price deviation, 5000 lots net. */
+    /**
+     * Default prototype config: permissive limits for demo trading.
+     * Constituent basket orders can exceed 2000 lots (e.g. CCB, ICBC at 10-lot HSI futures notional),
+     * so maxQtyPerOrderLots is set high enough not to false-reject hedges.
+     * maxNetPositionLots is large enough to avoid accumulation rejections across multiple arb cycles.
+     */
     public static RiskConfig defaultConfig() {
-        return new RiskConfig(500L, 100_000L, 5_000L);
+        return new RiskConfig(10_000L, 100_000L, 1_000_000L);
     }
 }

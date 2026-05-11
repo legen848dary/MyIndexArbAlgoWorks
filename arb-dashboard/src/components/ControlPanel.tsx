@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useStore } from '@/store/useStore'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
@@ -7,8 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { AlertTriangle, Play, Square } from 'lucide-react'
 
 const SIM_PROFILES = [
-  { value: 'HKEX_BASIS_ARB', label: 'HSI Basis Arb (HKEX)', enabled: true  },
-  { value: 'TWSE_ETF_ARB',   label: 'TWSE ETF NAV Arb ⏳',  enabled: false },
+  { value: 'HKEX_BASIS_ARB', label: 'HSI Basis Arb (HKEX)',  enabled: true },
+  { value: 'TWSE_ETF_ARB',   label: 'TWSE ETF NAV Arb',      enabled: true },
   { value: 'SSF_CALENDAR',   label: 'SSF Calendar Spread ⏳', enabled: false },
   { value: 'HK_CN_PAIR',     label: 'HK/CN Index Pair ⏳',   enabled: false },
 ]
@@ -27,6 +27,12 @@ interface ControlPanelProps {
 export function ControlPanel({ send }: ControlPanelProps) {
   const { strategies, toggleStrategy, simRunning, simProfile, simPhase } = useStore()
   const [selectedProfile, setSelectedProfile] = useState('HKEX_BASIS_ARB')
+  const [stopping, setStopping] = useState(false)
+
+  // Clear "stopping" once the server confirms simulation has stopped
+  useEffect(() => {
+    if (!simRunning) setStopping(false)
+  }, [simRunning])
 
   const handleToggle = (id: string, enabled: boolean) => {
     toggleStrategy(id)
@@ -44,6 +50,7 @@ export function ControlPanel({ send }: ControlPanelProps) {
   }
 
   const handleStopSim = () => {
+    setStopping(true)
     send('STOP_SIMULATION')
   }
 
@@ -63,7 +70,7 @@ export function ControlPanel({ send }: ControlPanelProps) {
                 {simPhase}
               </span>
               <Badge variant={simRunning ? 'default' : 'secondary'} className="text-xs">
-                {simRunning ? '▶ Running' : '■ Stopped'}
+                {stopping ? '⏳ Stopping…' : simRunning ? '▶ Running' : '■ Stopped'}
               </Badge>
             </div>
           </div>
@@ -83,7 +90,7 @@ export function ControlPanel({ send }: ControlPanelProps) {
               size="sm"
               className="flex-1 gap-1"
               onClick={handleStartSim}
-              disabled={simRunning}
+              disabled={simRunning || stopping}
             >
               <Play size={12} />
               Start
@@ -93,7 +100,7 @@ export function ControlPanel({ send }: ControlPanelProps) {
               variant="outline"
               className="flex-1 gap-1"
               onClick={handleStopSim}
-              disabled={!simRunning}
+              disabled={!simRunning || stopping}
             >
               <Square size={12} />
               Stop

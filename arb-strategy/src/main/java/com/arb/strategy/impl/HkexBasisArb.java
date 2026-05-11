@@ -89,13 +89,13 @@ public final class HkexBasisArb implements Strategy {
         final String sym = decodeSym();
         if (!sym.startsWith("HSI")) return;
 
+        if (bps <= exitThreshBps100) {
+            return; // basis below threshold — no signal, don't consume the cooldown
+        }
+
         final long nowNs = System.nanoTime();
         if (nowNs - lastSignalNs < COOLDOWN_NS) return; // still in cooldown
         lastSignalNs = nowNs;
-
-        if (bps <= exitThreshBps100) {
-            return;
-        }
 
         final long lots = Math.min(lotSize, maxLots.getAcquire());
         final Side futureSide = bps > 0 ? Side.SELL : Side.BUY;

@@ -31,6 +31,8 @@ public final class TwseEtfArb implements Strategy {
 
     private long etfMarketPrice = 0L;
     private long basketCounter  = 0L;
+    private long lastSignalNs   = 0L;
+    private static final long COOLDOWN_NS = 25_000_000_000L; // 25-second cooldown
 
     public TwseEtfArb(final String etfSymbol,
                       final long threshBps100,
@@ -80,6 +82,10 @@ public final class TwseEtfArb implements Strategy {
         final long threshAbs = threshBps100 * nav / 1_000_000L;
 
         if (absDiff <= threshAbs) return;
+
+        final long nowNs = System.nanoTime();
+        if (nowNs - lastSignalNs < COOLDOWN_NS) return; // one basket per 25s
+        lastSignalNs = nowNs;
 
         final boolean premium = diff > 0; // ETF trades above NAV → SELL ETF / BUY basket
         final Side etfSide   = premium ? Side.SELL : Side.BUY;

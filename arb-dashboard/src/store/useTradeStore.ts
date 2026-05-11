@@ -129,16 +129,17 @@ function inferStrategy(symbol: string): string {
 }
 
 function computeTradeState(trade: ArbTrade): { pnl: number | undefined; status: ArbTrade['status'] } {
-  const leg1Filled = trade.leg1?.status === 'FILLED'
-  const leg2AllFilled = trade.leg2Legs.length > 0 &&
-    trade.leg2Legs.every(l => l.status === 'FILLED')
-  const anyRejected = (trade.leg1?.status === 'REJECTED') ||
-    trade.leg2Legs.some(l => l.status === 'REJECTED')
+  // Only the signal leg (leg1) rejection is fatal — hedge leg rejections are tolerated
+  if (trade.leg1?.status === 'REJECTED') return { pnl: undefined, status: 'FAILED' }
 
-  if (anyRejected) return { pnl: undefined, status: 'FAILED' }
+  const leg1Filled = trade.leg1?.status === 'FILLED'
+  // Exclude rejected leg2 orders from the fill-completion check
+  const activeLeg2 = trade.leg2Legs.filter(l => l.status !== 'REJECTED')
+  const leg2AllFilled = activeLeg2.length > 0 && activeLeg2.every(l => l.status === 'FILLED')
+
   if (leg1Filled && leg2AllFilled) {
     const leg1Notional = (trade.leg1!.fillPrice ?? 0) / 10_000 * (trade.leg1!.fillQty ?? 0)
-    const leg2Notional = trade.leg2Legs.reduce(
+    const leg2Notional = activeLeg2.reduce(
       (sum, l) => sum + (l.fillPrice ?? 0) / 10_000 * (l.fillQty ?? 0), 0)
     const pnl = trade.leg1!.side === 'SELL'
       ? leg1Notional - leg2Notional

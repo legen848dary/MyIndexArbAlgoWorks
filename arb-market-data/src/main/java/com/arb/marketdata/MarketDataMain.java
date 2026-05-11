@@ -3,6 +3,7 @@ package com.arb.marketdata;
 import com.arb.common.Channels;
 import com.arb.common.aeron.AeronPublisher;
 import com.arb.marketdata.gateway.MarketDataGateway;
+import com.arb.marketdata.gateway.QuoteGateway;
 import com.arb.marketdata.handler.CsiFeedHandler;
 import com.arb.marketdata.handler.HkexFeedHandler;
 import com.arb.marketdata.handler.TaifexFeedHandler;
@@ -49,14 +50,15 @@ public final class MarketDataMain {
             aeron.addPublication(Channels.CHANNEL, Channels.FV_STREAM));
 
         // 4. Market data gateway + feed handlers
-        final MarketDataGateway mdGateway = new MarketDataGateway(mdPublisher);
-        final HkexFeedHandler   hkex      = new HkexFeedHandler(mdGateway);
-        final TaifexFeedHandler taifex    = new TaifexFeedHandler(mdGateway);
-        final CsiFeedHandler    csi       = new CsiFeedHandler(mdGateway);
+        final MarketDataGateway mdGateway   = new MarketDataGateway(mdPublisher);
+        final QuoteGateway      quoteGateway = new QuoteGateway(mdPublisher);
+        final HkexFeedHandler   hkex        = new HkexFeedHandler(mdGateway);
+        final TaifexFeedHandler taifex      = new TaifexFeedHandler(mdGateway);
+        final CsiFeedHandler    csi         = new CsiFeedHandler(mdGateway);
 
         // 5. Simulation engine (auto-starts with HKEX_BASIS_ARB)
         final LiveArbSimulator simulator = new LiveArbSimulator(
-            SimProfile.HKEX_BASIS_ARB, mdGateway, hkex, taifex, csi, fvPublisher);
+            SimProfile.HKEX_BASIS_ARB, mdGateway, hkex, taifex, csi, fvPublisher, quoteGateway);
 
         // 6. Simulation controller subscribes to CONTROL_STREAM
         final SimulationController controller = new SimulationController(aeron, simulator);

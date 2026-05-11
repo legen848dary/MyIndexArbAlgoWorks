@@ -2,6 +2,7 @@ package com.arb.marketdata.sim;
 
 import com.arb.common.aeron.AeronPublisher;
 import com.arb.marketdata.gateway.MarketDataGateway;
+import com.arb.marketdata.gateway.QuoteGateway;
 import com.arb.marketdata.handler.CsiFeedHandler;
 import com.arb.marketdata.handler.HkexFeedHandler;
 import com.arb.marketdata.handler.TaifexFeedHandler;
@@ -47,6 +48,7 @@ public final class LiveArbSimulator implements Runnable {
     private final TaifexFeedHandler  taifex;
     private final CsiFeedHandler     csi;
     private final AeronPublisher     fvPublisher;
+    private final QuoteGateway       quoteGateway;
 
     // SBE flyweights (pre-allocated, zero-GC)
     private final UnsafeBuffer         fvTxBuf      = new UnsafeBuffer(ByteBuffer.allocateDirect(256));
@@ -70,13 +72,15 @@ public final class LiveArbSimulator implements Runnable {
                             final HkexFeedHandler hkex,
                             final TaifexFeedHandler taifex,
                             final CsiFeedHandler csi,
-                            final AeronPublisher fvPublisher) {
+                            final AeronPublisher fvPublisher,
+                            final QuoteGateway quoteGateway) {
         this.activeProfile = initialProfile;
         this.mdGateway     = mdGateway;
         this.hkex          = hkex;
         this.taifex        = taifex;
         this.csi           = csi;
         this.fvPublisher   = fvPublisher;
+        this.quoteGateway  = quoteGateway;
     }
 
     public void setProfile(final SimProfile p) {
@@ -155,11 +159,24 @@ public final class LiveArbSimulator implements Runnable {
             taifex.onTick("2317.TW", vary(160.0, 0.0005, rng));
             taifex.onTick("2454.TW", vary(350.0, 0.0005, rng));
 
-            // Publish FvUpdate every 2 ticks
+            // Publish FvUpdate every 2 ticks — profile-specific basis injection
             if (cycleTick % 2 == 0) {
-                publishFvWithBasis("HSI.HK",    Exchange.HKEX,   (long)(hsiPrice   * 10_000.0), basisBps100, 0L);
-                publishFvWithBasis("0050.TW",   Exchange.TAIFEX, (long)(etf50Price * 10_000.0), basisBps100, (long)(etf50Price * 10_000.0));
-                publishFvWithBasis("CSI300.CN", Exchange.CSI,    (long)(csiPrice   * 10_000.0), basisBps100 / 2L, 0L);
+                final SimProfile profile = activeProfile;
+                // HKEX_BASIS_ARB: inject basis into HSI.HK only (triggers HkexBasisArb)
+                // TWSE_ETF_ARB:   inject basis into 0050.TW IEP via QuoteTick (triggers TwseEtfArb)
+                final long hkexBasis = (profile == SimProfile.HKEX_BASIS_ARB) ? basisBps100 : 0L;
+
+                publishFvWithBasis("HSI.HK",    Exchange.HKEX,   (long)(hsiPrice   * 10_000.0), hkexBasis, 0L);
+                publishFvWithBasis("0050.TW",   Exchange.TAIFEX, (long)(etf50Price * 10_000.0), 0L,        (long)(etf50Price * 10_000.0));
+                publishFvWithBasis("CSI300.CN", Exchange.CSI,    (long)(csiPrice   * 10_000.0), hkexBasis / 2L, 0L);
+
+                // For TWSE_ETF_ARB: publish QuoteTick with IEP diverging from NAV
+                // basisBps100=6000 → 0.6% IEP premium — well above the 0.2% TwseEtfArb threshold
+                if (profile == SimProfile.TWSE_ETF_ARB) {
+                    final long nav10k = (long)(etf50Price * 10_000.0);
+                    final long iep10k = (long)(nav10k * (1.0 + basisBps100 / 1_000_000.0));
+                    quoteGateway.publish("0050.TW", Exchange.TAIFEX, iep10k, iep10k, iep10k, System.nanoTime());
+                }
             }
 
             try {
