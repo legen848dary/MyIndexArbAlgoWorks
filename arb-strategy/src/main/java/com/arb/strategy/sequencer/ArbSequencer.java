@@ -1,6 +1,5 @@
 package com.arb.strategy.sequencer;
 
-import com.arb.common.Channels;
 import com.arb.common.aeron.AeronPublisher;
 import com.arb.common.aeron.AeronSubscriber;
 import com.arb.sbe.*;
@@ -11,16 +10,26 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Single-threaded deterministic event loop — the heart of the strategy engine.
+ *
+ * <p>Polls one mandatory subscriber (MARKET_DATA_STREAM) plus any number of extra
+ * subscribers added via {@link #addSubscriber}. Typically a second subscriber for
+ * FV_STREAM and a third for CONTROL_STREAM are added by {@code StrategyMain}.
  */
 public final class ArbSequencer implements AutoCloseable {
 
     // ── Aeron I/O ────────────────────────────────────────────────────────────
-    private final AeronSubscriber subscriber;
-    private final AeronPublisher  publisher;
-    private final Strategy        strategy;
+    private final AeronSubscriber            subscriber;
+    private final List<AeronSubscriber>      extraSubscribers = new ArrayList<>();
+    private final AeronPublisher             publisher;
+    private final Strategy                   strategy;
+    private       Consumer<String>           commandHandler   = null;
 
     // ── Pre-allocated SBE flyweights (zero-GC) ───────────────────────────────
     private final MessageHeaderDecoder       headerDecoder  = new MessageHeaderDecoder();
@@ -29,14 +38,16 @@ public final class ArbSequencer implements AutoCloseable {
     private final MarketVolumeTickDecoder    volDecoder     = new MarketVolumeTickDecoder();
     private final ReferenceDataRecordDecoder refDataDecoder = new ReferenceDataRecordDecoder();
     private final FvUpdateDecoder            fvDecoder      = new FvUpdateDecoder();
+    private final SystemEventDecoder         sysEvtDecoder  = new SystemEventDecoder();
     private final MessageHeaderEncoder       headerEncoder  = new MessageHeaderEncoder();
     private final OrderRequestEncoder        orderEncoder   = new OrderRequestEncoder();
     private final UnsafeBuffer               txBuffer       =
         new UnsafeBuffer(ByteBuffer.allocateDirect(256));
+    private final byte[]                     ctrlMsgBuf     = new byte[128];
 
     private volatile boolean running = false;
     private long nextOrderId  = 0L;
-    private long nextBasketId = 1L; // basket IDs start at 1 (0 = standalone)
+    private long nextBasketId = 1L;
 
     private final OrderSink orderSink;
 
@@ -74,6 +85,20 @@ public final class ArbSequencer implements AutoCloseable {
         };
     }
 
+    /** Add an extra Aeron subscriber to be polled in the main loop (e.g. FV_STREAM, CONTROL_STREAM). */
+    public void addSubscriber(final AeronSubscriber sub) {
+        extraSubscribers.add(sub);
+    }
+
+    /**
+     * Register a handler for {@code SystemEvent} SBE messages arriving on any subscriber.
+     * Used to handle {@code START_STRATEGY:Name} / {@code STOP_STRATEGY:Name} commands
+     * forwarded from the dashboard via CONTROL_STREAM.
+     */
+    public void setCommandHandler(final Consumer<String> handler) {
+        this.commandHandler = handler;
+    }
+
     /** Returns a new unique basket ID for grouping a multi-leg trade. */
     public long allocateBasketId() {
         return nextBasketId++;
@@ -83,6 +108,9 @@ public final class ArbSequencer implements AutoCloseable {
         running = true;
         while (running) {
             subscriber.poll(this::onFragment);
+            for (int i = 0; i < extraSubscribers.size(); i++) {
+                extraSubscribers.get(i).poll(this::onFragment);
+            }
         }
     }
 
@@ -97,10 +125,10 @@ public final class ArbSequencer implements AutoCloseable {
         final Header       header)
     {
         headerDecoder.wrap(buffer, offset);
-        final int templateId   = headerDecoder.templateId();
-        final int msgOffset    = offset + MessageHeaderDecoder.ENCODED_LENGTH;
-        final int blockLength  = headerDecoder.blockLength();
-        final int version      = headerDecoder.version();
+        final int templateId  = headerDecoder.templateId();
+        final int msgOffset   = offset + MessageHeaderDecoder.ENCODED_LENGTH;
+        final int blockLength = headerDecoder.blockLength();
+        final int version     = headerDecoder.version();
 
         switch (templateId) {
             case MarketDataTickDecoder.TEMPLATE_ID:
@@ -122,6 +150,16 @@ public final class ArbSequencer implements AutoCloseable {
             case FvUpdateDecoder.TEMPLATE_ID:
                 fvDecoder.wrap(buffer, msgOffset, blockLength, version);
                 strategy.onFvUpdate(fvDecoder, orderSink);
+                break;
+            case SystemEventDecoder.TEMPLATE_ID:
+                // Control commands from dashboard — warm path, allocation acceptable
+                if (commandHandler != null) {
+                    sysEvtDecoder.wrap(buffer, msgOffset, blockLength, version);
+                    sysEvtDecoder.getMessage(ctrlMsgBuf, 0);
+                    int end = ctrlMsgBuf.length;
+                    while (end > 0 && (ctrlMsgBuf[end - 1] == 0 || ctrlMsgBuf[end - 1] == ' ')) end--;
+                    commandHandler.accept(new String(ctrlMsgBuf, 0, end, StandardCharsets.US_ASCII));
+                }
                 break;
             default:
                 break;

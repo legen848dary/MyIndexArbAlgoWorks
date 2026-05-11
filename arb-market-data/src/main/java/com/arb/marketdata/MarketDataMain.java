@@ -21,8 +21,9 @@ import io.aeron.driver.ThreadingMode;
  * automatically. The {@link SimulationController} subscribes to CONTROL_STREAM (1004) for
  * runtime profile changes and start/stop commands from the dashboard.
  *
- * <h3>Arb cycle (per profile, 13 s)</h3>
- * STEADY (5s) → ARB_RAMP (3s) → ARB_WINDOW (3s, ~60 BPS basis) → CONVERGENCE (2s)
+ * <h3>Arb cycle (per profile, 8 s)</h3>
+ * STEADY (2s) → ARB_RAMP (2s) → ARB_WINDOW (2.5s, ~60 BPS basis) → CONVERGENCE (1.5s)
+ * Simulation starts when the dashboard sends {@code START_SIMULATION:PROFILE} on CONTROL_STREAM.
  */
 public final class MarketDataMain {
 
@@ -68,9 +69,9 @@ public final class MarketDataMain {
             mediaDriver.close();
         }));
 
-        // 8. Auto-start simulation via controller (so it tracks the thread for Start/Stop commands)
-        System.out.println("[market-data] Auto-starting simulation with profile HKEX_BASIS_ARB...");
-        controller.autoStart();
+        // 8. Wait for START_SIMULATION command from the dashboard (no auto-start)
+        System.out.println("[market-data] Ready — waiting for START_SIMULATION command from dashboard...");
+        System.out.println("[market-data]   → Open http://localhost:3000, select a profile, and press Start");
 
         // 9. Main loop: poll control commands every 50ms
         System.out.println("[market-data] Control loop running — waiting for commands on CONTROL_STREAM...");

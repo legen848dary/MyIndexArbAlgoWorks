@@ -16,12 +16,12 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * Generates synthetic market data with deliberate arbitrage windows every ~13 seconds.
  *
- * <h3>Cycle (13s total per profile tick, 100ms tick rate = 130 ticks/cycle)</h3>
+ * <h3>Cycle (8s total per profile tick, 100ms tick rate = 80 ticks/cycle)</h3>
  * <ul>
- *   <li>STEADY (50 ticks): normal random walk, basis ≈ 0</li>
- *   <li>ARB_RAMP (30 ticks): basis linearly increases to targetBps</li>
- *   <li>ARB_WINDOW (30 ticks): basis held at targetBps — strategy fires here</li>
- *   <li>CONVERGENCE (20 ticks): basis linearly returns to 0</li>
+ *   <li>STEADY (20 ticks / 2s): normal random walk, basis ≈ 0</li>
+ *   <li>ARB_RAMP (20 ticks / 2s): basis linearly increases to targetBps</li>
+ *   <li>ARB_WINDOW (25 ticks / 2.5s): basis held at targetBps — strategy fires here</li>
+ *   <li>CONVERGENCE (15 ticks / 1.5s): basis linearly returns to 0</li>
  * </ul>
  *
  * <p>The annualisedBasisBps field (scale 10²) reaches {@code targetBps100 = 6000} (60.00 BPS)
@@ -29,11 +29,11 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public final class LiveArbSimulator implements Runnable {
 
-    // Cycle structure in 100ms ticks
-    private static final int STEADY_TICKS      = 50;
-    private static final int RAMP_TICKS        = 30;
-    private static final int WINDOW_TICKS      = 30;
-    private static final int CONVERGENCE_TICKS = 20;
+    // Cycle structure in 100ms ticks — total 8 seconds
+    private static final int STEADY_TICKS      = 20;
+    private static final int RAMP_TICKS        = 20;
+    private static final int WINDOW_TICKS      = 25;
+    private static final int CONVERGENCE_TICKS = 15;
     private static final int CYCLE_TICKS       = STEADY_TICKS + RAMP_TICKS + WINDOW_TICKS + CONVERGENCE_TICKS;
 
     // Target basis during ARB_WINDOW (60 BPS in scale 10²)
