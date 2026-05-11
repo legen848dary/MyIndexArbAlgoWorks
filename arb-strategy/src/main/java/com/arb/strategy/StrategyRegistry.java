@@ -25,7 +25,7 @@ public final class StrategyRegistry {
 
     // ── Shared AtomicLong bridges (warm/cold → hot path) ─────────────────────
     public final AtomicLong maxLotsHkex         = new AtomicLong(10L);
-    public final AtomicLong maxLotsTwse         = new AtomicLong(10L);
+    public final AtomicLong maxLotsTwse         = new AtomicLong(200L); // needs 200+ for meaningful constituent lot quantities
     public final AtomicLong maxLotsSsf          = new AtomicLong(50L);
     public final AtomicLong dividendPv          = new AtomicLong(0L);
     public final AtomicLong impliedVolBps       = new AtomicLong(2_000_000L); // 20% IV

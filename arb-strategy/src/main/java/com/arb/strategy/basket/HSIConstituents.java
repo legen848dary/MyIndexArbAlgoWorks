@@ -28,18 +28,22 @@ public final class HSIConstituents {
         }
     }
 
-    /** The representative basket — pre-allocated, never reallocated. */
+    /**
+     * Representative basket — weights scaled so they sum to exactly 1,000,000.
+     * Full 100% coverage ensures Leg 2 spot notional balances Leg 1 futures notional,
+     * so P&L reflects only the basis spread captured, not a notional coverage gap.
+     */
     public static final Constituent[] BASKET = {
-        new Constituent("0700.HK", Exchange.HKEX, 100_000L, 3_500_000L),  // Tencent ~350 HKD, 10%
-        new Constituent("0005.HK", Exchange.HKEX,  90_000L,   620_000L),  // HSBC ~62 HKD, 9%
-        new Constituent("0941.HK", Exchange.HKEX,  80_000L,   580_000L),  // China Mobile ~58 HKD, 8%
-        new Constituent("0388.HK", Exchange.HKEX,  75_000L, 2_200_000L),  // HKEx ~220 HKD, 7.5%
-        new Constituent("1299.HK", Exchange.HKEX,  70_000L,   630_000L),  // AIA ~63 HKD, 7%
-        new Constituent("2318.HK", Exchange.HKEX,  65_000L,   410_000L),  // Ping An ~41 HKD, 6.5%
-        new Constituent("0939.HK", Exchange.HKEX,  60_000L,    55_000L),  // CCB ~5.5 HKD, 6%
-        new Constituent("1398.HK", Exchange.HKEX,  55_000L,    42_000L),  // ICBC ~4.2 HKD, 5.5%
-        new Constituent("0883.HK", Exchange.HKEX,  50_000L,   125_000L),  // CNOOC ~12.5 HKD, 5%
-        new Constituent("1113.HK", Exchange.HKEX,  45_000L,   450_000L),  // CKA ~45 HKD, 4.5%
+        new Constituent("0700.HK", Exchange.HKEX, 146_000L, 3_500_000L),  // Tencent ~350 HKD, 14.6%
+        new Constituent("0005.HK", Exchange.HKEX, 130_000L,   620_000L),  // HSBC ~62 HKD, 13%
+        new Constituent("0941.HK", Exchange.HKEX, 116_000L,   580_000L),  // China Mobile ~58 HKD, 11.6%
+        new Constituent("0388.HK", Exchange.HKEX, 109_000L, 2_200_000L),  // HKEx ~220 HKD, 10.9%
+        new Constituent("1299.HK", Exchange.HKEX, 101_000L,   630_000L),  // AIA ~63 HKD, 10.1%
+        new Constituent("2318.HK", Exchange.HKEX,  94_000L,   410_000L),  // Ping An ~41 HKD, 9.4%
+        new Constituent("0939.HK", Exchange.HKEX,  87_000L,    55_000L),  // CCB ~5.5 HKD, 8.7%
+        new Constituent("1398.HK", Exchange.HKEX,  80_000L,    42_000L),  // ICBC ~4.2 HKD, 8%
+        new Constituent("0883.HK", Exchange.HKEX,  72_000L,   125_000L),  // CNOOC ~12.5 HKD, 7.2%
+        new Constituent("1113.HK", Exchange.HKEX,  65_000L,   450_000L),  // CKA ~45 HKD, 6.5%
     };
 
     /**

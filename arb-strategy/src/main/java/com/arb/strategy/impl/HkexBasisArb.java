@@ -103,16 +103,20 @@ public final class HkexBasisArb implements Strategy {
 
         final long basketId = ++basketCounter * 100L + 1L; // unique: counter×100 + strategyId
 
+        // Sell (or buy) futures at the actual market price — FV ± basis — to capture the spread.
+        // Basket notional is still sized on futuresFv (fair value) so the hedge is delta-neutral.
+        final long futuresMarketPrice = fv.futuresFv() + fv.basis();
+
         System.out.printf("[ARB SIGNAL] %s: basis=%.2f BPS (threshold=%.2f BPS) → %s %d HSI futures lots%n",
             STRATEGY_NAME, bps / 100.0, exitThreshBps100 / 100.0, futureSide.name(), lots);
-        System.out.printf("[ARB TRADE]  basketId=%d: Leg1=%s %s.HK futures @FV=%d, Leg2=constituent basket (%d stocks)%n",
-            basketId, futureSide.name(), sym, fv.futuresFv(), HSIConstituents.BASKET.length);
+        System.out.printf("[ARB TRADE]  basketId=%d: Leg1=%s %s.HK futures @market=%d (FV=%d), Leg2=constituent basket (%d stocks)%n",
+            basketId, futureSide.name(), sym, futuresMarketPrice, fv.futuresFv(), HSIConstituents.BASKET.length);
 
         // ── Leg 1: HSI Futures (signal leg) ──────────────────────────────────
-        orders.sendLeg(basketId, 1, sym, futureSide, fv.futuresFv(), lots, OrderType.LIMIT);
+        orders.sendLeg(basketId, 1, sym, futureSide, futuresMarketPrice, lots, OrderType.LIMIT);
 
         // ── Leg 2: HSI Constituent Basket (delta-1 hedge leg) ────────────────
-        final long notional10k = lots * fv.futuresFv();
+        final long notional10k = lots * fv.futuresFv(); // size basket on FV, not market price
         int legTwoCount = 0;
         for (final Constituent c : HSIConstituents.BASKET) {
             final long legQty = HSIConstituents.computeLotQty(c, notional10k);

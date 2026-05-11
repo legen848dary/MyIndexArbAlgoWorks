@@ -26,12 +26,17 @@ public final class TWSeConstituents {
         }
     }
 
+    /**
+     * Representative basket — weights scaled so they sum to exactly 1,000,000.
+     * Full 100% coverage ensures Leg 2 basket notional balances Leg 1 ETF notional,
+     * so P&L reflects only the NAV spread captured, not a notional coverage gap.
+     */
     public static final Constituent[] BASKET = {
-        new Constituent("2330.TW", Exchange.TAIFEX, 350_000L, 9_500_000L),  // TSMC ~950 TWD, 35%
-        new Constituent("2317.TW", Exchange.TAIFEX,  80_000L, 1_600_000L),  // Hon Hai ~160 TWD, 8%
-        new Constituent("2454.TW", Exchange.TAIFEX,  65_000L, 3_500_000L),  // MediaTek ~350 TWD, 6.5%
-        new Constituent("2412.TW", Exchange.TAIFEX,  55_000L, 1_200_000L),  // Chunghwa Telecom ~120 TWD, 5.5%
-        new Constituent("2308.TW", Exchange.TAIFEX,  50_000L,   900_000L),  // Delta Electronics ~90 TWD, 5%
+        new Constituent("2330.TW", Exchange.TAIFEX, 583_000L, 9_500_000L),  // TSMC ~950 TWD, 58.3%
+        new Constituent("2317.TW", Exchange.TAIFEX, 134_000L, 1_600_000L),  // Hon Hai ~160 TWD, 13.4%
+        new Constituent("2454.TW", Exchange.TAIFEX, 108_000L, 3_500_000L),  // MediaTek ~350 TWD, 10.8%
+        new Constituent("2412.TW", Exchange.TAIFEX,  92_000L, 1_200_000L),  // Chunghwa Telecom ~120 TWD, 9.2%
+        new Constituent("2308.TW", Exchange.TAIFEX,  83_000L,   900_000L),  // Delta Electronics ~90 TWD, 8.3%
     };
 
     public static long computeLotQty(final Constituent c, final long notionalScaled4) {
