@@ -42,6 +42,9 @@ public final class RiskGateway {
     // Tracks last known prices per symbol for fat-finger price check
     private final Object2LongHashMap<String> lastPrices;
 
+    /** Last seqNo received from ArbSequencer. 0 = no sequenced message seen yet. */
+    private long lastOrderSeqNo = 0L;
+
     private final com.arb.common.metrics.LatencyRecorder riskCheckLatency = new com.arb.common.metrics.LatencyRecorder();
 
     public RiskGateway(final RiskConfig config,
@@ -66,12 +69,22 @@ public final class RiskGateway {
             headerDecoder.blockLength(),
             headerDecoder.version());
 
-        final long orderId = orderDecoder.orderId();
-        final Side side    = orderDecoder.side();
-        final long price   = orderDecoder.price();
-        final long qty     = orderDecoder.qty();
+        final long orderId   = orderDecoder.orderId();
+        final Side side      = orderDecoder.side();
+        final long price     = orderDecoder.price();
+        final long qty       = orderDecoder.qty();
         final long basketId  = orderDecoder.basketId();
         final short legIndex = orderDecoder.legIndex();
+        final long seqNo     = orderDecoder.seqNo();
+
+        // Gap detection: seqNo=0 means unsequenced (test / legacy path) — skip check.
+        if (seqNo > 0) {
+            if (lastOrderSeqNo > 0 && seqNo != lastOrderSeqNo + 1) {
+                System.out.printf("[RISK] WARN sequence gap — expected %d, received %d (missed %d order(s))%n",
+                    lastOrderSeqNo + 1, seqNo, seqNo - lastOrderSeqNo - 1);
+            }
+            lastOrderSeqNo = seqNo;
+        }
 
         orderDecoder.getSymbol(symBuf, 0);
         int slen = SYM_LEN;
@@ -120,6 +133,9 @@ public final class RiskGateway {
     public void updateLastPrice(final String symbol, final long priceScaled4) {
         lastPrices.put(symbol, priceScaled4);
     }
+
+    /** Returns the last seqNo accepted from ORDER_STREAM (0 if no sequenced message received yet). */
+    public long lastOrderSeqNo() { return lastOrderSeqNo; }
 
     public com.arb.common.metrics.LatencyRecorder riskCheckLatencyRecorder() { return riskCheckLatency; }
 

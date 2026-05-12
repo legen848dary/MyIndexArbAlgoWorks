@@ -470,7 +470,13 @@ public interface Strategy {
 Its `submit()` method encodes an `OrderRequest` into a pre-allocated
 `UnsafeBuffer` using the SBE encoder and publishes it in a single
 `Publication.offer()` call, with no heap allocation at any point in the
-call chain.
+call chain. Every `OrderRequest` carries a **monotonic `seqNo`** field
+stamped by `ArbSequencer` (1-based, incremented per order, single
+atomic long on the event thread). `RiskGateway` reads `seqNo` on each
+incoming order and logs a `[RISK] WARN sequence gap` alert if a message
+is skipped — enabling silent-message-loss detection without any latency
+impact on the happy path. Orders with `seqNo=0` are treated as
+unsequenced (tests, legacy paths) and bypass gap tracking.
 
 Strategies are registered in `StrategyRegistry` and independently
 toggled at runtime via `config/strategies.properties` or through the
@@ -534,7 +540,7 @@ Constituent weights use scale 10⁶. Implied volatility uses scale 10⁷
 | ID | Message | Key Fields | Channel |
 |---|---|---|---|
 | 1 | `MarketDataTick` | symbol(12), exchange, price, qty, timestamp | MARKET_DATA (1001) |
-| 2 | `OrderRequest` | symbol, side, price, qty, orderId, orderType | ORDER (1002) |
+| 2 | `OrderRequest` | symbol, side, price, qty, orderId, orderType, basketId, legIndex, **seqNo** | ORDER (1002) |
 | 3 | `SystemEvent` | eventType, message | CONTROL (1004) |
 | 4 | `QuoteTick` | symbol(12), exchange, iep, bidPrice, askPrice, timestamp | MARKET_DATA (1001) |
 | 5 | `MarketVolumeTick` | symbol(12), exchange, iev, dailyVolume, timestamp | MARKET_DATA (1001) |

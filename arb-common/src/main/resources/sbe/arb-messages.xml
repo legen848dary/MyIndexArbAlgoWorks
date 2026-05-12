@@ -83,6 +83,7 @@
         <field name="orderId"   id="6" type="int64"       description="Unique order ID for correlation (monotonic counter)"/>
         <field name="basketId"  id="7" type="int64"       description="Basket ID grouping legs (0=standalone order)"/>
         <field name="legIndex"  id="8" type="uint8"       description="Leg index: 0=standalone, 1=first leg (futures/ETF), 2=second leg (constituent basket)"/>
+        <field name="seqNo"     id="9" type="int64"       description="Monotonic sequence number stamped by ArbSequencer; 0=unsequenced (test/legacy). Enables gap detection at RiskGateway."/>
     </sbe:message>
 
     <!--

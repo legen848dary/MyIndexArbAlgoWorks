@@ -80,7 +80,10 @@ public class ExecutionSteps {
             .price(price)
             .qty(qty)
             .orderType(OrderType.LIMIT)
-            .orderId(99L);
+            .orderId(99L)
+            .basketId(0L)
+            .legIndex((short) 0)
+            .seqNo(0L); // 0 = unsequenced (test path — no gap tracking)
         gateway.onFragment(buf, 0,
             MessageHeaderDecoder.ENCODED_LENGTH + OrderRequestEncoder.BLOCK_LENGTH, null);
     }

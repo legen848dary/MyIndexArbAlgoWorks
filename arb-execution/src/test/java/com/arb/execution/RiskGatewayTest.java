@@ -54,6 +54,10 @@ public class RiskGatewayTest {
     }
 
     private void encode(String symbol, Side side, long price, long qty, long orderId) {
+        encode(symbol, side, price, qty, orderId, 0L);
+    }
+
+    private void encode(String symbol, Side side, long price, long qty, long orderId, long seqNo) {
         hdrEnc.wrap(buf, 0)
             .blockLength(OrderRequestEncoder.BLOCK_LENGTH)
             .templateId(OrderRequestEncoder.TEMPLATE_ID)
@@ -65,7 +69,10 @@ public class RiskGatewayTest {
             .price(price)
             .qty(qty)
             .orderType(OrderType.LIMIT)
-            .orderId(orderId);
+            .orderId(orderId)
+            .basketId(0L)
+            .legIndex((short) 0)
+            .seqNo(seqNo);
     }
 
     @Test
@@ -103,5 +110,46 @@ public class RiskGatewayTest {
         gateway.onFragment(buf, 0, MessageHeaderDecoder.ENCODED_LENGTH + OrderRequestEncoder.BLOCK_LENGTH, null);
         assertTrue(connector.fillCalled.get());
         assertFalse(connector.rejectCalled.get());
+    }
+
+    @Test
+    void sequencedOrders_trackLastSeqNo() {
+        // seqNo=1 → 2 → 3 in order: lastOrderSeqNo should end at 3
+        encode("HSI.HK", Side.SELL, 190_000_0000L, 1L, 10L, 1L);
+        gateway.onFragment(buf, 0, MessageHeaderDecoder.ENCODED_LENGTH + OrderRequestEncoder.BLOCK_LENGTH, null);
+        assertEquals(1L, gateway.lastOrderSeqNo());
+
+        encode("HSI.HK", Side.BUY, 190_000_0000L, 1L, 11L, 2L);
+        gateway.onFragment(buf, 0, MessageHeaderDecoder.ENCODED_LENGTH + OrderRequestEncoder.BLOCK_LENGTH, null);
+        assertEquals(2L, gateway.lastOrderSeqNo());
+
+        encode("HSI.HK", Side.SELL, 190_000_0000L, 1L, 12L, 3L);
+        gateway.onFragment(buf, 0, MessageHeaderDecoder.ENCODED_LENGTH + OrderRequestEncoder.BLOCK_LENGTH, null);
+        assertEquals(3L, gateway.lastOrderSeqNo());
+    }
+
+    @Test
+    void sequenceGap_doesNotRejectButAdvancesSeqNo() {
+        // seqNo=1 then seqNo=5 (gap of 3) — must still fill and advance lastSeqNo to 5
+        encode("HSI.HK", Side.SELL, 190_000_0000L, 1L, 20L, 1L);
+        gateway.onFragment(buf, 0, MessageHeaderDecoder.ENCODED_LENGTH + OrderRequestEncoder.BLOCK_LENGTH, null);
+
+        connector.fillCalled.set(false);
+        encode("HSI.HK", Side.SELL, 190_000_0000L, 1L, 21L, 5L); // gap: expected 2, got 5
+        gateway.onFragment(buf, 0, MessageHeaderDecoder.ENCODED_LENGTH + OrderRequestEncoder.BLOCK_LENGTH, null);
+
+        // Gap triggers a warning but the order must NOT be rejected
+        assertTrue(connector.fillCalled.get(), "Order should still fill despite seqNo gap");
+        assertFalse(connector.rejectCalled.get(), "Gap must not cause rejection");
+        assertEquals(5L, gateway.lastOrderSeqNo());
+    }
+
+    @Test
+    void unsequencedOrder_seqNoZero_neverTriggersGap() {
+        // Unsequenced orders (seqNo=0) must never affect gap tracking
+        encode("HSI.HK", Side.SELL, 190_000_0000L, 1L, 30L, 0L);
+        gateway.onFragment(buf, 0, MessageHeaderDecoder.ENCODED_LENGTH + OrderRequestEncoder.BLOCK_LENGTH, null);
+        assertEquals(0L, gateway.lastOrderSeqNo(), "seqNo=0 should not update lastOrderSeqNo");
+        assertTrue(connector.fillCalled.get());
     }
 }

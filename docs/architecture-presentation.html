@@ -530,7 +530,7 @@ tick.<span class="cm">wrap</span>(buffer, offset, blockLength, version);
   </div>
   <div style="margin-top:14px;padding:11px 18px;background:var(--card);border-radius:8px;border:1px solid var(--border);font-size:11.5px;color:var(--muted)">
     <strong style="color:var(--accent)">8 SBE message types:</strong>&nbsp;
-    MarketDataTick [1] · OrderRequest [2] · SystemEvent [3] · QuoteTick [4] · MarketVolumeTick [5] · ReferenceDataRecord [6] · FvUpdate [7] · OrderUpdate [8]
+    MarketDataTick [1] · OrderRequest [2] <em style="color:var(--accent)">(+seqNo)</em> · SystemEvent [3] · QuoteTick [4] · MarketVolumeTick [5] · ReferenceDataRecord [6] · FvUpdate [7] · OrderUpdate [8]
     &nbsp;—&nbsp; all in <code style="color:var(--accent)">arb-common/src/main/resources/sbe/arb-messages.xml</code>
   </div>
 </section>
@@ -788,6 +788,19 @@ dividendPv.<span class="cm">setRelease</span>(newPv); <span class="cc">// acquir
       <!-- ORDER IN -->
       <div style="padding:9px 14px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.25);border-radius:8px;font-size:12px;font-weight:600;color:var(--accent);margin-bottom:6px">
         📥 OrderRequest received from Strategy [1002]
+      </div>
+      <!-- check 0: seqNo gap detection -->
+      <div style="display:flex;align-items:stretch">
+        <div style="display:flex;flex-direction:column;align-items:center;width:38px">
+          <div style="width:2px;height:10px;background:var(--border)"></div>
+          <div style="width:26px;height:26px;background:rgba(99,102,241,.12);border:2px solid var(--indigo);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--indigo);flex-shrink:0">0</div>
+          <div style="width:2px;flex:1;background:var(--border)"></div>
+        </div>
+        <div style="flex:1;padding:4px 0 14px 12px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:2px">Sequence gap detection <span style="font-size:10px;font-weight:400;color:var(--muted)">(new)</span></div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--indigo);margin-bottom:4px">if (seqNo ≠ lastSeqNo+1) → WARN (no reject)</div>
+          <span style="font-size:10px;color:var(--indigo);font-weight:600;background:rgba(99,102,241,.1);padding:2px 7px;border-radius:4px">Zero cost on happy path — 1 comparison, 1 long increment</span>
+        </div>
       </div>
       <!-- check 1 -->
       <div style="display:flex;align-items:stretch">

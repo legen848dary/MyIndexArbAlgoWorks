@@ -48,6 +48,8 @@ public final class ArbSequencer implements AutoCloseable {
     private volatile boolean running = false;
     private long nextOrderId  = 0L;
     private long nextBasketId = 1L;
+    /** Monotonic sequence number stamped on every OrderRequest published to ORDER_STREAM. */
+    private long orderSeqNo   = 0L;
 
     private final OrderSink orderSink;
 
@@ -68,6 +70,7 @@ public final class ArbSequencer implements AutoCloseable {
             @Override
             public void sendLeg(final long basketId, final int legIndex, final String symbol, final Side side, final long price, final long qty, final OrderType orderType) {
                 final long orderId = nextOrderId++;
+                final long seqNo   = ++orderSeqNo;   // monotonically increasing; 1-based
                 final int msgLen = (int) orderEncoder.wrapAndApplyHeader(txBuffer, 0, headerEncoder)
                     .symbol(symbol)
                     .side(side)
@@ -77,6 +80,7 @@ public final class ArbSequencer implements AutoCloseable {
                     .orderId(orderId)
                     .basketId(basketId)
                     .legIndex((short) legIndex)
+                    .seqNo(seqNo)
                     .encodedLength() + MessageHeaderEncoder.ENCODED_LENGTH;
                 // Hot thread — no logging here; [ARB BASKET] in each strategy summarises the submission
                 publisher.publish(txBuffer, 0, msgLen);
