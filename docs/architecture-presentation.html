@@ -412,6 +412,218 @@ tr:last-child td{border-bottom:none}
 </section>
 
 <!-- ═══════════════════════════════════════════════════════
+     SLIDE 3a  —  INPUT SEQUENCER (PLANNED)
+     ═══════════════════════════════════════════════════════ -->
+<section id="s3a" style="padding:36px 52px">
+  <div class="lbl">02a — Input Sequencer</div>
+  <h2 style="font-size:clamp(17px,1.9vw,25px);margin-bottom:3px">
+    Input Event Sequencer — Sealing the Determinism Gap
+    <span style="display:inline-block;background:rgba(245,158,11,.13);border:1.5px solid rgba(245,158,11,.55);color:#f59e0b;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:5px;margin-left:12px;vertical-align:middle;letter-spacing:.04em">🚧 PLANNED</span>
+  </h2>
+  <p style="font-size:11px;color:var(--muted);margin:0 0 5px">
+    Every input event must carry a global monotonic <code>seqNo</code> before reaching any consumer — making crash recovery, replay, and regulatory audit byte-exact and unambiguous.
+  </p>
+  <svg viewBox="0 0 1300 440" xmlns="http://www.w3.org/2000/svg" style="width:100%;flex:1">
+    <defs>
+      <marker id="is-b" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="#38bdf8"/></marker>
+      <marker id="is-p" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="#c084fc"/></marker>
+      <marker id="is-t" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="#2dd4bf"/></marker>
+      <marker id="is-g" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="#4ade80"/></marker>
+      <marker id="is-a" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="#f59e0b"/></marker>
+      <marker id="is-r" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="#f87171"/></marker>
+      <pattern id="is-pg" width="30" height="30" patternUnits="userSpaceOnUse">
+        <path d="M30 0L0 0 0 30" fill="none" stroke="rgba(56,189,248,.03)" stroke-width="1"/>
+      </pattern>
+    </defs>
+    <rect width="1300" height="440" fill="#0f172a" rx="10"/>
+    <rect width="1300" height="440" fill="url(#is-pg)" rx="10"/>
+
+    <!-- ══════════════════════════════ TODAY SIDE (x: 8..540) ══════════════════════════════ -->
+    <rect x="8" y="8" width="532" height="18" rx="3" fill="rgba(239,68,68,.09)" stroke="rgba(239,68,68,.28)" stroke-width="1"/>
+    <text x="274" y="20" text-anchor="middle" fill="#f87171" font-family="Inter,sans-serif" font-size="8" font-weight="700">⚠️  TODAY — Two unsequenced input streams: non-deterministic ordering at ArbSequencer</text>
+
+    <!-- Feed sources (today) -->
+    <rect x="8" y="32" width="118" height="30" rx="5" fill="rgba(56,189,248,.05)" stroke="#38bdf8" stroke-width="1" opacity="0.65"/>
+    <text x="67" y="46" text-anchor="middle" fill="#38bdf8" font-family="Inter,sans-serif" font-size="9" font-weight="600">HKEX · TAIFEX</text>
+    <text x="67" y="57" text-anchor="middle" fill="#475569" font-family="Inter,sans-serif" font-size="7.5">HSI · TAIEX · SSF</text>
+    <rect x="8" y="68" width="118" height="30" rx="5" fill="rgba(56,189,248,.05)" stroke="#38bdf8" stroke-width="1" opacity="0.65"/>
+    <text x="67" y="82" text-anchor="middle" fill="#38bdf8" font-family="Inter,sans-serif" font-size="9" font-weight="600">CSI / SGX</text>
+    <text x="67" y="94" text-anchor="middle" fill="#475569" font-family="Inter,sans-serif" font-size="7.5">A50 · CSI300 proxy</text>
+
+    <!-- arb-market-data (today) -->
+    <rect x="140" y="26" width="148" height="82" rx="6" fill="rgba(56,189,248,.05)" stroke="#38bdf8" stroke-width="1.2" opacity="0.75"/>
+    <text x="214" y="43" text-anchor="middle" fill="#38bdf8" font-family="Inter,sans-serif" font-size="9.5" font-weight="700">arb-market-data</text>
+    <rect x="148" y="49" width="132" height="13" rx="2" fill="#162032" stroke="#1e2d42"/>
+    <text x="214" y="59" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="7.5">HkexFeedHandler · SBE encode</text>
+    <rect x="148" y="66" width="132" height="13" rx="2" fill="#162032" stroke="#1e2d42"/>
+    <text x="214" y="76" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="7.5">CsiFeedHandler · price ×10⁴</text>
+    <text x="214" y="102" text-anchor="middle" fill="#ef4444" font-family="Inter,sans-serif" font-size="7.5" font-style="italic">publishes → no seqNo stamp ✗</text>
+
+    <!-- arb-gambit (today) -->
+    <rect x="140" y="116" width="148" height="62" rx="6" fill="rgba(45,212,191,.05)" stroke="#2dd4bf" stroke-width="1.2" opacity="0.75"/>
+    <text x="214" y="132" text-anchor="middle" fill="#2dd4bf" font-family="Inter,sans-serif" font-size="9.5" font-weight="700">arb-gambit</text>
+    <rect x="148" y="138" width="132" height="13" rx="2" fill="#162032" stroke="#1e2d42"/>
+    <text x="214" y="148" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="7.5">FvEngine &lt;10µs · NavCalc</text>
+    <rect x="148" y="155" width="132" height="13" rx="2" fill="#162032" stroke="#1e2d42"/>
+    <text x="214" y="165" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="7.5">VolSurfaceCalibrator</text>
+
+    <!-- stream 1001 WARNING (x=300..492, y=36..72) -->
+    <rect x="300" y="36" width="192" height="36" rx="4" fill="rgba(239,68,68,.07)" stroke="rgba(239,68,68,.5)" stroke-width="1.3"/>
+    <text x="396" y="52" text-anchor="middle" fill="#f87171" font-family="Inter,sans-serif" font-size="9.5" font-weight="600">stream 1001 · MARKET_DATA</text>
+    <text x="396" y="66" text-anchor="middle" fill="#ef4444" font-family="Inter,sans-serif" font-size="8.5" font-weight="700">⚠️ no seqNo</text>
+
+    <!-- stream 1005 WARNING (x=300..492, y=126..162) -->
+    <rect x="300" y="126" width="192" height="36" rx="4" fill="rgba(239,68,68,.07)" stroke="rgba(239,68,68,.5)" stroke-width="1.3"/>
+    <text x="396" y="142" text-anchor="middle" fill="#f87171" font-family="Inter,sans-serif" font-size="9.5" font-weight="600">stream 1005 · FV</text>
+    <text x="396" y="156" text-anchor="middle" fill="#ef4444" font-family="Inter,sans-serif" font-size="8.5" font-weight="700">⚠️ no seqNo</text>
+
+    <!-- ArbSequencer TODAY (x=504..626, y=18..190) -->
+    <rect x="504" y="18" width="124" height="172" rx="7" fill="rgba(192,132,252,.07)" stroke="#c084fc" stroke-width="1.5"/>
+    <text x="566" y="37" text-anchor="middle" fill="#c084fc" font-family="Inter,sans-serif" font-size="10" font-weight="700">ArbSequencer</text>
+    <text x="566" y="50" text-anchor="middle" fill="#475569" font-family="Inter,sans-serif" font-size="7.5">(arb-strategy)</text>
+    <rect x="512" y="57" width="108" height="14" rx="2" fill="#0f1729" stroke="#1e293b"/>
+    <text x="566" y="67" text-anchor="middle" fill="#86efac" font-family="Inter,sans-serif" font-size="7.5">BLP sequencer ✓</text>
+    <rect x="512" y="75" width="108" height="14" rx="2" fill="#0f1729" stroke="#1e293b"/>
+    <text x="566" y="85" text-anchor="middle" fill="#86efac" font-family="Inter,sans-serif" font-size="7.5">ORDER [1002] seqNo ✓</text>
+    <rect x="512" y="93" width="108" height="34" rx="2" fill="rgba(239,68,68,.1)" stroke="rgba(239,68,68,.3)"/>
+    <text x="566" y="106" text-anchor="middle" fill="#f87171" font-family="Inter,sans-serif" font-size="7.5">⚠️ 1001 + 1005 arrive</text>
+    <text x="566" y="118" text-anchor="middle" fill="#f87171" font-family="Inter,sans-serif" font-size="7.5">interleaved — no</text>
+    <text x="566" y="130" text-anchor="middle" fill="#f87171" font-family="Inter,sans-serif" font-size="7.5">global input order</text>
+    <rect x="512" y="131" width="108" height="40" rx="2" fill="rgba(239,68,68,.1)" stroke="rgba(239,68,68,.3)"/>
+    <text x="566" y="144" text-anchor="middle" fill="#ef4444" font-family="Inter,sans-serif" font-size="7">Same market state</text>
+    <text x="566" y="155" text-anchor="middle" fill="#ef4444" font-family="Inter,sans-serif" font-size="7">→ different outputs</text>
+    <text x="566" y="166" text-anchor="middle" fill="#ef4444" font-family="Inter,sans-serif" font-size="7">depending on arrival</text>
+    <text x="566" y="184" text-anchor="middle" fill="#334155" font-family="Inter,sans-serif" font-size="7" font-style="italic">output seqNo: ORDER [1002] ✓</text>
+
+    <!-- Non-det warning -->
+    <rect x="8" y="200" width="532" height="36" rx="4" fill="rgba(239,68,68,.07)" stroke="rgba(239,68,68,.3)" stroke-width="1"/>
+    <text x="274" y="215" text-anchor="middle" fill="#f87171" font-family="Inter,sans-serif" font-size="8.5" font-weight="600">⚠️  OS scheduling jitter: 1001 and 1005 can arrive in ANY interleaved order</text>
+    <text x="274" y="229" text-anchor="middle" fill="#ef4444" font-family="Inter,sans-serif" font-size="8">Same market state → ambiguous replay → arb-archive needs 2 un-joinable tapes</text>
+
+    <!-- Missing items box -->
+    <rect x="8" y="244" width="532" height="74" rx="4" fill="#0f1729" stroke="#1e293b"/>
+    <text x="18" y="260" fill="#64748b" font-family="Inter,sans-serif" font-size="9" font-weight="600">Missing today for full input determinism:</text>
+    <text x="18" y="276" fill="#f87171" font-family="Inter,sans-serif" font-size="8.5">✗  seqNo on MarketDataTick [1001]</text>
+    <text x="18" y="291" fill="#f87171" font-family="Inter,sans-serif" font-size="8.5">✗  seqNo on FvUpdate [1005]</text>
+    <text x="285" y="276" fill="#f87171" font-family="Inter,sans-serif" font-size="8.5">✗  global cross-stream ordering</text>
+    <text x="285" y="291" fill="#f87171" font-family="Inter,sans-serif" font-size="8.5">✗  single-tape arb-archive replay</text>
+    <text x="274" y="308" text-anchor="middle" fill="#334155" font-family="Inter,sans-serif" font-size="7.5" font-style="italic">seqNo today covers OUTPUT only (OrderRequest [1002] ✓) — input events are not yet sequenced</text>
+
+    <!-- ══════════════════════════════ DIVIDER ══════════════════════════════ -->
+    <line x1="556" y1="8" x2="556" y2="326" stroke="#1e293b" stroke-width="1.5"/>
+    <rect x="553" y="144" width="78" height="42" rx="5" fill="rgba(245,158,11,.12)" stroke="rgba(245,158,11,.4)" stroke-width="1"/>
+    <text x="592" y="162" text-anchor="middle" fill="#f59e0b" font-family="Inter,sans-serif" font-size="8.5" font-weight="700">UPGRADE</text>
+    <text x="592" y="176" text-anchor="middle" fill="#f59e0b" font-family="Inter,sans-serif" font-size="8.5" font-weight="700">PATH →</text>
+
+    <!-- ══════════════════════════════ PLANNED SIDE (x: 640..1292) ══════════════════════════════ -->
+    <rect x="640" y="8" width="652" height="18" rx="3" fill="rgba(74,222,128,.07)" stroke="rgba(74,222,128,.22)" stroke-width="1"/>
+    <text x="966" y="20" text-anchor="middle" fill="#4ade80" font-family="Inter,sans-serif" font-size="8" font-weight="700">🚧  PLANNED — Stamp seqNo at source: full input determinism, zero latency overhead</text>
+
+    <!-- Feed sources (planned) -->
+    <rect x="640" y="32" width="118" height="30" rx="5" fill="rgba(56,189,248,.05)" stroke="#38bdf8" stroke-width="1" opacity="0.75"/>
+    <text x="699" y="46" text-anchor="middle" fill="#38bdf8" font-family="Inter,sans-serif" font-size="9" font-weight="600">HKEX · TAIFEX</text>
+    <text x="699" y="57" text-anchor="middle" fill="#475569" font-family="Inter,sans-serif" font-size="7.5">HSI · TAIEX · SSF</text>
+    <rect x="640" y="68" width="118" height="30" rx="5" fill="rgba(56,189,248,.05)" stroke="#38bdf8" stroke-width="1" opacity="0.75"/>
+    <text x="699" y="82" text-anchor="middle" fill="#38bdf8" font-family="Inter,sans-serif" font-size="9" font-weight="600">CSI / SGX</text>
+    <text x="699" y="94" text-anchor="middle" fill="#475569" font-family="Inter,sans-serif" font-size="7.5">A50 · CSI300 proxy</text>
+
+    <!-- arb-market-data (planned) — with seqNo badge -->
+    <rect x="772" y="26" width="152" height="86" rx="6" fill="rgba(56,189,248,.07)" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="848" y="43" text-anchor="middle" fill="#38bdf8" font-family="Inter,sans-serif" font-size="9.5" font-weight="700">arb-market-data</text>
+    <rect x="780" y="49" width="136" height="13" rx="2" fill="#162032" stroke="#1e2d42"/>
+    <text x="848" y="59" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="7.5">HkexFeedHandler · SBE encode</text>
+    <rect x="780" y="66" width="136" height="15" rx="2" fill="rgba(74,222,128,.1)" stroke="rgba(74,222,128,.3)"/>
+    <text x="848" y="77" text-anchor="middle" fill="#86efac" font-family="Inter,sans-serif" font-size="8" font-weight="600">✓ stamp seqNo at publish</text>
+    <text x="848" y="105" text-anchor="middle" fill="#4ade80" font-family="Inter,sans-serif" font-size="7.5" font-style="italic">seqNo++ per tick · 0µs overhead</text>
+
+    <!-- arb-gambit (planned) — with seqNo badge -->
+    <rect x="772" y="116" width="152" height="66" rx="6" fill="rgba(45,212,191,.07)" stroke="#2dd4bf" stroke-width="1.5"/>
+    <text x="848" y="132" text-anchor="middle" fill="#2dd4bf" font-family="Inter,sans-serif" font-size="9.5" font-weight="700">arb-gambit</text>
+    <rect x="780" y="138" width="136" height="13" rx="2" fill="#162032" stroke="#1e2d42"/>
+    <text x="848" y="148" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="7.5">FvEngine &lt;10µs · NavCalc</text>
+    <rect x="780" y="155" width="136" height="15" rx="2" fill="rgba(74,222,128,.1)" stroke="rgba(74,222,128,.3)"/>
+    <text x="848" y="165" text-anchor="middle" fill="#86efac" font-family="Inter,sans-serif" font-size="8" font-weight="600">✓ stamp seqNo at publish</text>
+
+    <!-- stream 1001 OK (x=936..1118, y=36..72) -->
+    <rect x="936" y="36" width="182" height="36" rx="4" fill="rgba(74,222,128,.07)" stroke="rgba(74,222,128,.4)" stroke-width="1.3"/>
+    <text x="1027" y="52" text-anchor="middle" fill="#4ade80" font-family="Inter,sans-serif" font-size="9.5" font-weight="600">stream 1001 · MARKET_DATA</text>
+    <text x="1027" y="66" text-anchor="middle" fill="#86efac" font-family="Inter,sans-serif" font-size="8.5" font-weight="700">✓ seqNo on every tick</text>
+
+    <!-- stream 1005 OK (x=936..1118, y=126..162) -->
+    <rect x="936" y="126" width="182" height="36" rx="4" fill="rgba(74,222,128,.07)" stroke="rgba(74,222,128,.4)" stroke-width="1.3"/>
+    <text x="1027" y="142" text-anchor="middle" fill="#4ade80" font-family="Inter,sans-serif" font-size="9.5" font-weight="600">stream 1005 · FV</text>
+    <text x="1027" y="156" text-anchor="middle" fill="#86efac" font-family="Inter,sans-serif" font-size="8.5" font-weight="700">✓ seqNo on every FvUpdate</text>
+
+    <!-- Consumer: ArbSequencer (planned) -->
+    <rect x="1132" y="18" width="152" height="82" rx="6" fill="rgba(192,132,252,.08)" stroke="#c084fc" stroke-width="1.5"/>
+    <text x="1208" y="35" text-anchor="middle" fill="#c084fc" font-family="Inter,sans-serif" font-size="9.5" font-weight="700">ArbSequencer</text>
+    <text x="1208" y="48" text-anchor="middle" fill="#475569" font-family="Inter,sans-serif" font-size="7.5">(arb-strategy)</text>
+    <rect x="1140" y="54" width="136" height="13" rx="2" fill="rgba(74,222,128,.08)" stroke="rgba(74,222,128,.2)"/>
+    <text x="1208" y="64" text-anchor="middle" fill="#86efac" font-family="Inter,sans-serif" font-size="7.5">✓ 1001+1005 globally ordered</text>
+    <rect x="1140" y="71" width="136" height="13" rx="2" fill="rgba(74,222,128,.08)" stroke="rgba(74,222,128,.2)"/>
+    <text x="1208" y="81" text-anchor="middle" fill="#86efac" font-family="Inter,sans-serif" font-size="7.5">✓ deterministic replay possible</text>
+    <text x="1208" y="94" text-anchor="middle" fill="#334155" font-family="Inter,sans-serif" font-size="7" font-style="italic">same seqNo → same output</text>
+
+    <!-- Consumer: arb-archive (planned) -->
+    <rect x="1132" y="110" width="152" height="82" rx="6" fill="rgba(245,158,11,.06)" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="5,3"/>
+    <text x="1208" y="127" text-anchor="middle" fill="#f59e0b" font-family="Inter,sans-serif" font-size="9.5" font-weight="700">arb-archive 🚧</text>
+    <rect x="1140" y="133" width="136" height="13" rx="2" fill="rgba(74,222,128,.08)" stroke="rgba(74,222,128,.2)"/>
+    <text x="1208" y="143" text-anchor="middle" fill="#86efac" font-family="Inter,sans-serif" font-size="7.5">✓ ONE ordered tape</text>
+    <rect x="1140" y="150" width="136" height="13" rx="2" fill="rgba(74,222,128,.08)" stroke="rgba(74,222,128,.2)"/>
+    <text x="1208" y="160" text-anchor="middle" fill="#86efac" font-family="Inter,sans-serif" font-size="7.5">✓ seek to any seqNo exactly</text>
+    <text x="1208" y="184" text-anchor="middle" fill="#334155" font-family="Inter,sans-serif" font-size="7" font-style="italic">replay order unambiguous</text>
+
+    <!-- Benefits box (planned side, y=200..318) -->
+    <rect x="640" y="200" width="652" height="120" rx="5" fill="rgba(74,222,128,.04)" stroke="rgba(74,222,128,.18)" stroke-width="1"/>
+    <text x="650" y="216" fill="#4ade80" font-family="Inter,sans-serif" font-size="9" font-weight="700">Benefits after adding seqNo to input streams:</text>
+    <text x="650" y="232" fill="#86efac" font-family="Inter,sans-serif" font-size="8.5">✓  Global seqNo across ALL event types — one unified sequence space</text>
+    <text x="650" y="248" fill="#86efac" font-family="Inter,sans-serif" font-size="8.5">✓  arb-archive: ONE ordered tape, not two separate un-joinable tapes</text>
+    <text x="650" y="264" fill="#86efac" font-family="Inter,sans-serif" font-size="8.5">✓  Crash replay: load snapshot at seqNo N → replay from N+1, no ordering ambiguity</text>
+    <text x="650" y="280" fill="#86efac" font-family="Inter,sans-serif" font-size="8.5">✓  Gap detection at ingestion: know instantly if feed dropped any tick</text>
+    <text x="650" y="296" fill="#86efac" font-family="Inter,sans-serif" font-size="8.5">✓  Regulatory audit: complete ordered input log (SFC / HKEX / TAIFEX compliant)</text>
+    <text x="966" y="312" text-anchor="middle" fill="#64748b" font-family="Inter,sans-serif" font-size="7.5" font-style="italic">Option A (pragmatic, 0µs): stamp seqNo in arb-market-data + arb-gambit at SBE publish time — our next step</text>
+
+    <!-- ══════════════════════════════ BOTTOM STRIP ══════════════════════════════ -->
+    <rect x="8" y="330" width="1284" height="100" rx="6" fill="rgba(129,140,248,.05)" stroke="rgba(129,140,248,.22)" stroke-width="1"/>
+    <text x="654" y="347" text-anchor="middle" fill="#818cf8" font-family="Inter,sans-serif" font-size="10" font-weight="700">Two-Layer Sequencer Architecture — Why Both Layers Are Needed</text>
+    <!-- Layer 1 -->
+    <rect x="16" y="354" width="622" height="68" rx="4" fill="rgba(192,132,252,.05)" stroke="#c084fc" stroke-width="1"/>
+    <text x="24" y="370" fill="#c084fc" font-family="Inter,sans-serif" font-size="9.5" font-weight="700">Layer 1 — Business Logic Sequencer: ArbSequencer  ✅ TODAY</text>
+    <text x="24" y="385" fill="#94a3b8" font-family="Inter,sans-serif" font-size="8.5">Single-threaded event loop (LMAX BLP pattern) — all strategy decisions are serialised, no race conditions</text>
+    <text x="24" y="400" fill="#94a3b8" font-family="Inter,sans-serif" font-size="8.5">Stamps seqNo on every OrderRequest [1002] — OUTPUT is fully deterministic ✓</text>
+    <text x="24" y="414" fill="#64748b" font-family="Inter,sans-serif" font-size="7.5" font-style="italic">Scope: protects business decisions. Does NOT govern the order in which raw market events arrive.</text>
+    <!-- Layer 2 -->
+    <rect x="654" y="354" width="630" height="68" rx="4" fill="rgba(245,158,11,.05)" stroke="#f59e0b" stroke-width="1" stroke-dasharray="5,3"/>
+    <text x="662" y="370" fill="#f59e0b" font-family="Inter,sans-serif" font-size="9.5" font-weight="700">Layer 2 — Input Data Sequencer: stamp at source  🚧 PLANNED</text>
+    <text x="662" y="385" fill="#94a3b8" font-family="Inter,sans-serif" font-size="8.5">Assigns global seqNo to every market event at the point of ingestion, before any consumer reads it</text>
+    <text x="662" y="400" fill="#94a3b8" font-family="Inter,sans-serif" font-size="8.5">Makes INPUT deterministic — prerequisite for arb-archive single-tape replay and full crash recovery</text>
+    <text x="662" y="414" fill="#64748b" font-family="Inter,sans-serif" font-size="7.5" font-style="italic">Option A: stamp at source in arb-market-data + arb-gambit (+0µs). Option B: dedicated sequencer JVM (+1–2µs).</text>
+
+    <!-- ARROWS TODAY SIDE -->
+    <line x1="126" y1="47" x2="138" y2="58" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#is-b)" stroke-dasharray="4,2" opacity="0.5"/>
+    <line x1="126" y1="83" x2="138" y2="78" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#is-b)" stroke-dasharray="4,2" opacity="0.5"/>
+    <line x1="288" y1="62" x2="298" y2="54" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#is-r)" opacity="0.7"/>
+    <line x1="288" y1="147" x2="298" y2="144" stroke="#2dd4bf" stroke-width="1.5" marker-end="url(#is-r)" opacity="0.7"/>
+    <line x1="492" y1="54" x2="502" y2="62" stroke="#f87171" stroke-width="1.5" marker-end="url(#is-p)" opacity="0.7"/>
+    <line x1="492" y1="144" x2="502" y2="136" stroke="#f87171" stroke-width="1.5" marker-end="url(#is-p)" opacity="0.7"/>
+
+    <!-- ARROWS PLANNED SIDE -->
+    <line x1="758" y1="47" x2="770" y2="58" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#is-b)" stroke-dasharray="4,2" opacity="0.5"/>
+    <line x1="758" y1="83" x2="770" y2="78" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#is-b)" stroke-dasharray="4,2" opacity="0.5"/>
+    <line x1="924" y1="62" x2="934" y2="54" stroke="#4ade80" stroke-width="2" marker-end="url(#is-g)"/>
+    <line x1="924" y1="147" x2="934" y2="144" stroke="#4ade80" stroke-width="2" marker-end="url(#is-g)"/>
+    <!-- stream 1001 → ArbSequencer -->
+    <line x1="1118" y1="54" x2="1130" y2="52" stroke="#4ade80" stroke-width="1.5" marker-end="url(#is-p)"/>
+    <!-- stream 1001 → arb-archive (dashed fan) -->
+    <path d="M 1118 62 Q 1124 148 1130 148" stroke="#4ade80" stroke-width="1" fill="none" marker-end="url(#is-a)" stroke-dasharray="3,2" opacity="0.5"/>
+    <!-- stream 1005 → arb-archive -->
+    <line x1="1118" y1="144" x2="1130" y2="148" stroke="#4ade80" stroke-width="1.5" marker-end="url(#is-a)"/>
+    <!-- stream 1005 → ArbSequencer (dashed fan) -->
+    <path d="M 1118 136 Q 1124 58 1130 58" stroke="#4ade80" stroke-width="1" fill="none" marker-end="url(#is-p)" stroke-dasharray="3,2" opacity="0.5"/>
+  </svg>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
      SLIDE 3b  —  PRODUCTION RESILIENCE: arb-archive (FUTURE)
      ═══════════════════════════════════════════════════════ -->
 <section id="s3b" style="padding:36px 52px">
