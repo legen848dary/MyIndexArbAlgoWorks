@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useStore } from '@/store/useStore'
 import { useTradeStore } from '@/store/useTradeStore'
 import type { ArbTrade } from '@/store/useTradeStore'
@@ -55,20 +55,30 @@ interface LiveMonitorProps {
   onViewAllTrades?: () => void
 }
 
-/** Custom SVG label rendered at the top of each ReferenceLine signal marker. */
-function SignalLabel({ viewBox, side }: { viewBox?: { x: number; y: number }; side: string }) {
-  if (!viewBox) return null
-  const { x, y } = viewBox
-  const isBuy  = side === 'BUY'
-  const color  = isBuy ? '#10b981' : '#f59e0b'  // green for long, amber for short
-  const arrow  = isBuy ? '▲' : '▼'
-  const label  = isBuy ? 'LONG' : 'SHORT'
+/**
+ * Custom dot rendered on the Market Price line at arb signal ticks.
+ * Recharts clones this element and injects { cx, cy, payload } for each data point.
+ * Returns null for non-signal points (no visible dot).
+ */
+function SignalDot(props: { cx?: number; cy?: number; payload?: { sig?: string | null } }) {
+  const { cx, cy, payload } = props
+  if (!payload?.sig || cx === undefined || cy === undefined) return null
+
+  const isBuy = payload.sig === 'BUY'
+  const color = isBuy ? '#22c55e' : '#f59e0b'   // green = long, amber = short
+  const label = isBuy ? '▲ LONG' : '▼ SHORT'
+
   return (
     <g>
-      <rect x={x - 1} y={y + 4} width={46} height={15} rx={2} fill={color} fillOpacity={0.92} />
-      <text x={x + 2} y={y + 15} fill="white" fontSize={9} fontWeight="bold" fontFamily="monospace">
-        {arrow} {label}
-      </text>
+      {/* Full-height vertical dashed line spanning the chart (y=0 to y=280 covers the container) */}
+      <line x1={cx} y1={0} x2={cx} y2={280}
+        stroke={color} strokeWidth={2} strokeDasharray="5 3" opacity={0.85} />
+      {/* Pill label near the top */}
+      <rect x={cx + 4} y={6} width={48} height={16} rx={3} fill={color} />
+      <text x={cx + 6} y={18} fill="white" fontSize={10} fontWeight="bold"
+        fontFamily="ui-monospace,monospace">{label}</text>
+      {/* Filled circle marker at the price level */}
+      <circle cx={cx} cy={cy} r={5} fill={color} stroke="white" strokeWidth={2} />
     </g>
   )
 }
@@ -77,7 +87,6 @@ export function LiveMonitor({ onViewAllTrades }: LiveMonitorProps) {
   const [symbol, setSymbol]         = useState('HSI.HK')
   const [selectedBasketId, setBasketId] = useState<number | null>(null)
 
-  // Only show symbols that have received data — derived from live priceHistory keys
   const availableSymbols = useStore((s) => Object.keys(s.priceHistory))
   const priceHistory     = useStore((s) => s.priceHistory[symbol] ?? [])
   const recentTrades     = useTradeStore((s) => s.recentTrades.slice(0, 4))
@@ -89,17 +98,15 @@ export function LiveMonitor({ onViewAllTrades }: LiveMonitorProps) {
     }
   }, [availableSymbols, symbol])
 
+  // Include the signal field in chartData so SignalDot can read payload.sig
   const chartData = priceHistory.map((p) => ({
     time:   formatTimestamp(p.ts),
     Market: p.market,
     FV:     p.fv,
+    sig:    p.signal ?? null,
   }))
 
-  // Signal markers are already tagged onto priceHistory by useStore.handleOrderRequest
-  // when the leg-1 ORDER_REQUEST arrives — no timestamp matching needed.
-  const signalMarkers = priceHistory
-    .map((p, i) => p.signal ? { x: chartData[i].time, side: p.signal } : null)
-    .filter(Boolean) as Array<{ x: string; side: 'BUY' | 'SELL' }>
+  const hasSignals = priceHistory.some(p => p.signal)
 
   return (
     <>
@@ -130,23 +137,16 @@ export function LiveMonitor({ onViewAllTrades }: LiveMonitorProps) {
                   contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
                 />
                 <Legend />
-                <Line type="monotone" dataKey="Market" stroke="#3b82f6" dot={false} strokeWidth={2} />
-                <Line type="monotone" dataKey="FV"     stroke="#10b981" dot={false} strokeWidth={2} strokeDasharray="4 2" />
-                {signalMarkers.map((m, i) => (
-                  <ReferenceLine
-                    key={`sig-${i}-${m.x}`}
-                    x={m.x}
-                    stroke={m.side === 'BUY' ? '#10b981' : '#f59e0b'}
-                    strokeWidth={1.5}
-                    strokeDasharray="3 3"
-                    label={<SignalLabel side={m.side} />}
-                  />
-                ))}
+                {/* Market line — SignalDot renders the arb signal markers at tagged ticks */}
+                <Line type="monotone" dataKey="Market" stroke="#3b82f6"
+                  dot={<SignalDot />} activeDot={{ r: 3 }} strokeWidth={2} />
+                <Line type="monotone" dataKey="FV" stroke="#10b981"
+                  dot={false} strokeWidth={2} strokeDasharray="4 2" />
               </LineChart>
             </ResponsiveContainer>
-            {signalMarkers.length > 0 && (
+            {hasSignals && (
               <p className="mt-1 text-right text-[10px] text-muted-foreground">
-                <span className="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-500 mr-1 align-middle" />▲ LONG signal&nbsp;&nbsp;
+                <span className="inline-block w-2.5 h-2.5 rounded-sm bg-green-500 mr-1 align-middle" />▲ LONG signal&nbsp;&nbsp;
                 <span className="inline-block w-2.5 h-2.5 rounded-sm bg-amber-500 mr-1 align-middle" />▼ SHORT signal
               </p>
             )}
@@ -188,3 +188,4 @@ export function LiveMonitor({ onViewAllTrades }: LiveMonitorProps) {
     </>
   )
 }
+
