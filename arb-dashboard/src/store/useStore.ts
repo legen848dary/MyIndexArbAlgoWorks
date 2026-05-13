@@ -1,11 +1,12 @@
 import { create } from 'zustand'
-import type { MarketDataMsg, FvUpdateMsg, OrderUpdateMsg, SystemEventMsg, SimulationStatusMsg, LatencyStatsMsg } from '../types/messages'
+import type { MarketDataMsg, FvUpdateMsg, OrderUpdateMsg, SystemEventMsg, SimulationStatusMsg, LatencyStatsMsg, OrderRequestMsg } from '../types/messages'
 import { useTradeStore } from './useTradeStore'
 
 export interface PricePoint {
   ts: number
   market: number   // price / 10_000
   fv: number       // futuresFv / 10_000
+  signal?: 'BUY' | 'SELL'  // set when a leg-1 arb order fires on this tick
 }
 
 export interface StrategyState {
@@ -27,6 +28,7 @@ interface AppState {
   priceHistory: Record<string, PricePoint[]>
   handleMarketData: (msg: MarketDataMsg) => void
   handleFvUpdate: (msg: FvUpdateMsg) => void
+  handleOrderRequest: (msg: OrderRequestMsg) => void  // tags leg-1 signal onto latest price point
 
   // Orders (last 100)
   orders: OrderUpdateMsg[]
@@ -83,6 +85,17 @@ export const useStore = create<AppState>()((set) => ({
       const arr = [...prev.slice(-59), next]
       return { priceHistory: { ...s.priceHistory, [msg.symbol]: arr } }
     }),
+  handleOrderRequest: (msg) => {
+    // Only leg-1 (signal leg) triggers the chart marker
+    if (msg.legIndex !== 1) return
+    set((s) => {
+      const pts = s.priceHistory[msg.symbol]
+      if (!pts || pts.length === 0) return s
+      const updated = [...pts]
+      updated[updated.length - 1] = { ...updated[updated.length - 1], signal: msg.side as 'BUY' | 'SELL' }
+      return { priceHistory: { ...s.priceHistory, [msg.symbol]: updated } }
+    })
+  },
 
   orders: [],
   handleOrderUpdate: (msg) =>

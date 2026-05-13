@@ -12,6 +12,7 @@ export function useWebSocket() {
   const {
     setConnected, handleMarketData, handleFvUpdate,
     handleOrderUpdate, handleSystemEvent, handleSimulationStatus, handleLatencyStats,
+    handleOrderRequest: markSignalOnChart,
   } = useStore()
   const {
     handleOrderRequest,
@@ -38,7 +39,10 @@ export function useWebSocket() {
             if ((msg as OrderUpdateMsg).basketId !== 0) handleTradeOrderUpdate(msg as OrderUpdateMsg)
             break
           case 'SYSTEM_EVENT':       handleSystemEvent(msg);                       break
-          case 'ORDER_REQUEST':      handleOrderRequest(msg as OrderRequestMsg);   break
+          case 'ORDER_REQUEST':
+            handleOrderRequest(msg as OrderRequestMsg)
+            markSignalOnChart(msg as OrderRequestMsg)   // tag leg-1 signal on the price chart
+            break
           case 'SIMULATION_STATUS':  handleSimulationStatus(msg as SimulationStatusMsg); break
           case 'LATENCY_STATS':      handleLatencyStats(msg as LatencyStatsMsg);         break
         }
@@ -55,7 +59,7 @@ export function useWebSocket() {
     }
   }, [
     setConnected, handleMarketData, handleFvUpdate,
-    handleOrderUpdate, handleSystemEvent, handleSimulationStatus, handleLatencyStats,
+    handleOrderUpdate, handleSystemEvent, handleSimulationStatus, handleLatencyStats, markSignalOnChart,
     handleOrderRequest, handleTradeOrderUpdate,
   ])
 
