@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { useState, useEffect, useMemo } from 'react'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { useStore } from '@/store/useStore'
 import { useTradeStore } from '@/store/useTradeStore'
 import type { ArbTrade } from '@/store/useTradeStore'
@@ -55,6 +55,34 @@ interface LiveMonitorProps {
   onViewAllTrades?: () => void
 }
 
+/** True when the chart symbol and trade's leg-1 symbol share the same root (e.g. "HSI", "0050", "CSI"). */
+function symbolRootMatches(chartSymbol: string, leg1Symbol: string | undefined): boolean {
+  if (!leg1Symbol) return false
+  // Split on dot or dash, take first token, upper-case
+  const chartRoot = chartSymbol.split(/[.\-]/)[0].toUpperCase()
+  const tradeRoot = leg1Symbol.split(/[.\-]/)[0].toUpperCase()
+  const len = Math.min(chartRoot.length, tradeRoot.length, 3)
+  return chartRoot.substring(0, len) === tradeRoot.substring(0, len)
+}
+
+/** Custom SVG label rendered at the top of each ReferenceLine signal marker. */
+function SignalLabel({ viewBox, side }: { viewBox?: { x: number; y: number }; side: string }) {
+  if (!viewBox) return null
+  const { x, y } = viewBox
+  const isBuy  = side === 'BUY'
+  const color  = isBuy ? '#10b981' : '#f59e0b'  // green for long, amber for short
+  const arrow  = isBuy ? '▲' : '▼'
+  const label  = isBuy ? 'LONG' : 'SHORT'
+  return (
+    <g>
+      <rect x={x - 1} y={y + 4} width={46} height={15} rx={2} fill={color} fillOpacity={0.92} />
+      <text x={x + 2} y={y + 15} fill="white" fontSize={9} fontWeight="bold" fontFamily="monospace">
+        {arrow} {label}
+      </text>
+    </g>
+  )
+}
+
 export function LiveMonitor({ onViewAllTrades }: LiveMonitorProps) {
   const [symbol, setSymbol]         = useState('HSI.HK')
   const [selectedBasketId, setBasketId] = useState<number | null>(null)
@@ -63,6 +91,7 @@ export function LiveMonitor({ onViewAllTrades }: LiveMonitorProps) {
   const availableSymbols = useStore((s) => Object.keys(s.priceHistory))
   const priceHistory     = useStore((s) => s.priceHistory[symbol] ?? [])
   const recentTrades     = useTradeStore((s) => s.recentTrades.slice(0, 4))
+  const allTrades        = useTradeStore((s) => s.recentTrades)
 
   // Auto-switch to the first available symbol when the selected one has no data
   useEffect(() => {
@@ -76,6 +105,38 @@ export function LiveMonitor({ onViewAllTrades }: LiveMonitorProps) {
     Market: p.market,
     FV:     p.fv,
   }))
+
+  // Arb signal markers — one ReferenceLine per triggered trade, matched to the nearest chart x tick
+  const signalMarkers = useMemo(() => {
+    if (chartData.length === 0 || priceHistory.length === 0) return []
+
+    const markers = allTrades
+      .filter(t => symbolRootMatches(symbol, t.leg1?.symbol))
+      .map(t => {
+        // Find nearest price-history point by timestamp
+        let nearestIdx = 0
+        let minDiff = Infinity
+        priceHistory.forEach((p, i) => {
+          const diff = Math.abs(p.ts - t.timestamp)
+          if (diff < minDiff) { minDiff = diff; nearestIdx = i }
+        })
+        return {
+          x:        chartData[nearestIdx]?.time as string | undefined,
+          side:     t.leg1?.side ?? 'BUY',
+          strategy: t.strategy,
+          basketId: t.basketId,
+        }
+      })
+      .filter(m => m.x !== undefined)
+
+    // Deduplicate by x — keep only the first signal per tick to avoid overlapping labels
+    const seen = new Set<string>()
+    return markers.filter(m => {
+      if (seen.has(m.x!)) return false
+      seen.add(m.x!)
+      return true
+    }).slice(-8) // show at most the 8 most recent signals
+  }, [allTrades, chartData, priceHistory, symbol])
 
   return (
     <>
@@ -108,8 +169,24 @@ export function LiveMonitor({ onViewAllTrades }: LiveMonitorProps) {
                 <Legend />
                 <Line type="monotone" dataKey="Market" stroke="#3b82f6" dot={false} strokeWidth={2} />
                 <Line type="monotone" dataKey="FV"     stroke="#10b981" dot={false} strokeWidth={2} strokeDasharray="4 2" />
+                {signalMarkers.map((m) => (
+                  <ReferenceLine
+                    key={`sig-${m.basketId}`}
+                    x={m.x}
+                    stroke={m.side === 'BUY' ? '#10b981' : '#f59e0b'}
+                    strokeWidth={1.5}
+                    strokeDasharray="3 3"
+                    label={<SignalLabel side={m.side} />}
+                  />
+                ))}
               </LineChart>
             </ResponsiveContainer>
+            {signalMarkers.length > 0 && (
+              <p className="mt-1 text-right text-[10px] text-muted-foreground">
+                <span className="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-500 mr-1 align-middle" />▲ LONG signal&nbsp;&nbsp;
+                <span className="inline-block w-2.5 h-2.5 rounded-sm bg-amber-500 mr-1 align-middle" />▼ SHORT signal
+              </p>
+            )}
           </CardContent>
         </Card>
 
