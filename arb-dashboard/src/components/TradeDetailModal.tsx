@@ -13,6 +13,13 @@ function fmtAge(ts: number): string {
   return `${Math.floor(sec / 60)}m ${sec % 60}s ago`
 }
 
+function symbolCurrency(symbol?: string): string {
+  if (!symbol) return 'HKD'
+  if (symbol.endsWith('.TW')) return 'TWD'
+  if (symbol.endsWith('.SH') || symbol.endsWith('.SZ')) return 'CNY'
+  return 'HKD'
+}
+
 const STATUS_BADGE: Record<string, string> = {
   OPEN:     'bg-blue-500/20 text-blue-300 border-blue-500/40',
   PARTIAL:  'bg-yellow-500/20 text-yellow-300 border-yellow-500/40',
@@ -240,7 +247,7 @@ export function TradeDetailModal({ basketId, onClose }: Props) {
             }`}>
               <p className="text-xs text-muted-foreground mb-0.5">Realised Arb P&L</p>
               <p className={`text-2xl font-bold ${trade.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {trade.pnl >= 0 ? '+' : ''}{trade.pnl.toFixed(2)} HKD/TWD
+                {trade.pnl >= 0 ? '+' : ''}{trade.pnl.toFixed(2)} {symbolCurrency(trade.leg1?.symbol)}
               </p>
             </div>
           )}

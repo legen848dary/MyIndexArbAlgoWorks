@@ -1,7 +1,14 @@
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { useTradeStore } from '@/store/useTradeStore'
+import { useStore } from '@/store/useStore'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { formatTimestamp } from '@/lib/utils'
+
+function profileCurrency(profile: string): string {
+  if (profile.includes('TWSE') || profile.includes('TAIWAN')) return 'TWD'
+  if (profile.includes('CN') || profile.includes('CSI'))       return 'CNY'
+  return 'HKD'
+}
 
 export function PnlPanel() {
   // Accurate arb spread P&L: sum of completed-basket P&Ls (leg1 proceeds − leg2 cost).
@@ -11,6 +18,8 @@ export function PnlPanel() {
       .filter((t) => t.status === 'COMPLETE' && t.pnl != null)
       .sort((a, b) => a.timestamp - b.timestamp)
   )
+  const simProfile = useStore((s) => s.simProfile)
+  const currency   = profileCurrency(simProfile)
 
   let cumulative = 0
   const chartData = completedTrades.map((t) => {
@@ -63,7 +72,7 @@ export function PnlPanel() {
           </ResponsiveContainer>
         )}
         <p className="text-xs text-muted-foreground mt-2">
-          Arb spread P&L per completed basket: Leg 1 fill proceeds − Leg 2 basket cost (HKD/TWD)
+          Arb spread P&L per completed basket: Leg 1 fill proceeds − Leg 2 basket cost ({currency})
         </p>
       </CardContent>
     </Card>
