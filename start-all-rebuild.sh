@@ -10,10 +10,10 @@ if ! docker info > /dev/null 2>&1; then
 fi
 
 echo "→ Building and starting all services..."
-docker compose up -d
+docker compose up --build -d
 
 echo ""
-echo "✅ Services started FAST MODE:"
+echo "✅ Services started:"
 echo "   Dashboard:   http://localhost:3000"
 echo "   Web Gateway: ws://localhost:8080/ws"
 echo ""
