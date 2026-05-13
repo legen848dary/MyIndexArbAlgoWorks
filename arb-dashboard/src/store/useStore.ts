@@ -4,8 +4,9 @@ import { useTradeStore } from './useTradeStore'
 
 export interface PricePoint {
   ts: number
-  market: number   // price / 10_000
-  fv: number       // futuresFv / 10_000
+  market: number   // futures market price = (futuresFv + basis) / 10_000
+  fv: number       // futures fair value = futuresFv / 10_000
+  bps?: number     // annualised basis in BPS (not ×100) — for tooltip display
   signal?: 'BUY' | 'SELL'  // set when a leg-1 arb order fires on this tick
 }
 
@@ -70,6 +71,9 @@ export const useStore = create<AppState>()((set) => ({
   handleMarketData: (msg) =>
     set((s) => {
       const prev = s.priceHistory[msg.symbol] ?? []
+      // Once FV updates are flowing (fv > 0), let them drive the chart exclusively
+      // to prevent interleaving spot prices with futures-vs-FV data.
+      if (prev.length > 0 && prev[prev.length - 1].fv > 0) return s
       const last = prev[prev.length - 1]
       const fv   = last?.fv ?? 0
       const next: PricePoint = { ts: msg.ts, market: msg.price / 10_000, fv }
@@ -79,9 +83,11 @@ export const useStore = create<AppState>()((set) => ({
   handleFvUpdate: (msg) =>
     set((s) => {
       const prev = s.priceHistory[msg.symbol] ?? []
-      const last = prev[prev.length - 1]
-      const market = last?.market ?? 0
-      const next: PricePoint = { ts: msg.ts, market, fv: msg.futuresFv / 10_000 }
+      // market = futures market price (what you can actually trade), fv = theoretical fair value
+      const futuresMktPrice = (msg.futuresFv + msg.basis) / 10_000
+      const futuresFv       = msg.futuresFv / 10_000
+      const bps             = msg.annualisedBasisBps100 / 100
+      const next: PricePoint = { ts: msg.ts, market: futuresMktPrice, fv: futuresFv, bps }
       const arr = [...prev.slice(-59), next]
       return { priceHistory: { ...s.priceHistory, [msg.symbol]: arr } }
     }),

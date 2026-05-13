@@ -100,10 +100,11 @@ export function LiveMonitor({ onViewAllTrades }: LiveMonitorProps) {
 
   // Include the signal field in chartData so SignalDot can read payload.sig
   const chartData = priceHistory.map((p) => ({
-    time:   formatTimestamp(p.ts),
-    Market: p.market,
-    FV:     p.fv,
-    sig:    p.signal ?? null,
+    time:         formatTimestamp(p.ts),
+    Futures:      p.market,      // futures market price = futuresFv + basis
+    'Fair Value': p.fv,          // theoretical fair value
+    bps:          p.bps ?? 0,    // annualised basis in BPS — used in tooltip
+    sig:          p.signal ?? null,
   }))
 
   const hasSignals = priceHistory.some(p => p.signal)
@@ -115,7 +116,7 @@ export function LiveMonitor({ onViewAllTrades }: LiveMonitorProps) {
       <div className="space-y-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle>📈 Live Monitor — FV vs Market Price</CardTitle>
+            <CardTitle>📈 Live Monitor — Futures vs Fair Value</CardTitle>
             <select
               value={symbol}
               onChange={(e) => setSymbol(e.target.value)}
@@ -134,13 +135,20 @@ export function LiveMonitor({ onViewAllTrades }: LiveMonitorProps) {
                 <XAxis dataKey="time" tick={{ fontSize: 11 }} />
                 <YAxis domain={['auto', 'auto']} tick={{ fontSize: 11 }} />
                 <Tooltip
+                  formatter={(value: number, name: string, item: { payload?: { bps?: number } }) => {
+                    const formatted = typeof value === 'number' ? value.toFixed(2) : value
+                    if (name === 'Futures' && item.payload?.bps) {
+                      return [`${formatted}  (${item.payload.bps.toFixed(1)} bps)`, name]
+                    }
+                    return [formatted, name]
+                  }}
                   contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
                 />
                 <Legend />
-                {/* Market line — SignalDot renders the arb signal markers at tagged ticks */}
-                <Line type="monotone" dataKey="Market" stroke="#3b82f6"
+                {/* Futures line — SignalDot renders the arb signal markers at tagged ticks */}
+                <Line type="monotone" dataKey="Futures" stroke="#3b82f6"
                   dot={<SignalDot />} activeDot={{ r: 3 }} strokeWidth={2} />
-                <Line type="monotone" dataKey="FV" stroke="#10b981"
+                <Line type="monotone" dataKey="Fair Value" stroke="#10b981"
                   dot={false} strokeWidth={2} strokeDasharray="4 2" />
               </LineChart>
             </ResponsiveContainer>
