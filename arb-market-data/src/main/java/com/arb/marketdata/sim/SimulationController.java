@@ -111,6 +111,11 @@ public final class SimulationController implements AutoCloseable {
         simulator.stop();
         if (simThread != null) {
             simThread.interrupt();
+            try {
+                simThread.join(300); // wait up to 300ms for the sim thread to exit cleanly
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
             simThread = null;
         }
         System.out.println("[sim-ctrl] Simulation STOPPED");

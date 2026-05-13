@@ -68,6 +68,12 @@ public final class StrategyMain {
                 multiStrategy.setEnabled(cmd.substring("START_STRATEGY:".length()).trim(), true);
             } else if (cmd.startsWith("STOP_STRATEGY:")) {
                 multiStrategy.setEnabled(cmd.substring("STOP_STRATEGY:".length()).trim(), false);
+            } else if (cmd.equals("STOP_SIMULATION") || cmd.equals("EMERGENCY_HALT")) {
+                multiStrategy.disableAll();
+                System.out.println("[strategy] Simulation stopped — all strategies disabled, no new orders");
+            } else if (cmd.startsWith("START_SIMULATION")) {
+                multiStrategy.enableAll();
+                System.out.println("[strategy] Simulation started — all strategies re-enabled");
             }
         });
 
@@ -116,6 +122,16 @@ public final class StrategyMain {
                 }
             }
             if (!found) System.out.printf("[strategy] WARNING: unknown strategy '%s'%n", name);
+        }
+
+        void disableAll() {
+            entries.forEach(e -> e.enabled().set(false));
+            System.out.println("[strategy] All strategies DISABLED");
+        }
+
+        void enableAll() {
+            entries.forEach(e -> e.enabled().set(true));
+            System.out.println("[strategy] All strategies ENABLED");
         }
 
         @Override
