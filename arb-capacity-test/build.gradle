@@ -1,0 +1,32 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'com.gradleup.shadow' version '8.3.5'
+}
+
+application {
+    mainClass = 'com.arb.capacity.CapacityEntry'
+    applicationDefaultJvmArgs = [
+        '--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED',
+        '--add-opens=java.base/java.nio=ALL-UNNAMED',
+        '--add-opens=java.base/sun.nio.ch=ALL-UNNAMED',
+        '-Dagrona.disable.bounds.checks=true'
+    ]
+}
+
+dependencies {
+    implementation project(':arb-common')
+    implementation project(':arb-gambit')
+    implementation project(':arb-strategy')
+    implementation 'io.aeron:aeron-client:1.48.0'
+    implementation 'io.aeron:aeron-driver:1.48.0'
+    implementation 'org.agrona:agrona:2.2.1'
+}
+
+shadowJar {
+    archiveClassifier = 'all'
+    mergeServiceFiles()
+    manifest {
+        attributes 'Main-Class': 'com.arb.capacity.CapacityEntry'
+    }
+}

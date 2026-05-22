@@ -57,6 +57,21 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  capacity-test:
+    build:
+      context: .
+      dockerfile: arb-capacity-test/Dockerfile
+    ipc: host
+    volumes:
+      - /dev/shm:/dev/shm
+    depends_on:
+      market-data:
+        condition: service_healthy
+      strategy:
+        condition: service_started
+      execution:
+        condition: service_started
+
   dashboard:
     build:
       context: .
